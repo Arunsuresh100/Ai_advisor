@@ -33,7 +33,66 @@
   @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-green-300;
 }
 
-.bg-mesh {
+  .bg-mesh {
   background: radial-gradient(at 0% 0%, rgba(34, 197, 94, 0.1) 0px, transparent 50%),
               radial-gradient(at 100% 100%, rgba(21, 128, 61, 0.1) 0px, transparent 50%);
 }
+
+@layer utilities {
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+/* Glass Nexus Advanced Utilities */
+.aurora-blur {
+  filter: blur(100px);
+  opacity: 0.5;
+  mix-blend-mode: plus-lighter;
+}
+
+.text-gradient-gold {
+  @apply bg-clip-text text-transparent bg-gradient-to-tr from-zinc-200 via-emerald-200 to-emerald-500;
+}
+
+.glass-nexus-container {
+  @apply bg-white/[0.03] backdrop-blur-[32px] border border-white/10 shadow-2xl;
+}
+
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-500 { animation-delay: 500ms; }
