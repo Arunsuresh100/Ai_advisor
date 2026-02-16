@@ -37,7 +37,7 @@ const NeuralSphere = () => {
         this.density = (Math.random() * 30) + 1;
       }
       draw() {
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.8)';
+        ctx.fillStyle = 'rgba(203, 163, 92, 0.8)';
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.closePath();
@@ -92,7 +92,7 @@ const NeuralSphere = () => {
           let distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < 50) {
-            ctx.strokeStyle = `rgba(16, 185, 129, ${1 - distance / 50})`;
+            ctx.strokeStyle = `rgba(203, 163, 92, ${1 - distance / 50})`;
             ctx.lineWidth = 0.5;
             ctx.beginPath();
             ctx.moveTo(particles[a].x, particles[a].y);

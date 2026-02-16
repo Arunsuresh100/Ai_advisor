@@ -1,6 +1,6 @@
 import React from 'react';
 
-const About = () => {
+const Capabilities = () => {
   const capabilities = [
     {
       title: 'AI Legal Chat',
@@ -102,4 +102,4 @@ const About = () => {
   );
 };
 
-export default About;
+export default Capabilities;

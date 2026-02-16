@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './components/LandingPage';
+import HowItWorksPage from './components/HowItWorksPage';
+import AboutPage from './components/AboutPage';
 import ChatInterface from './components/ChatInterface';
 import Contact from './components/Contact';
 import Help from './components/Help';
@@ -19,6 +21,8 @@ function App() {
         <div className="App">
           <Routes>
             {/* Public Routes */}
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/" element={<LandingPage />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/help" element={<Help />} />

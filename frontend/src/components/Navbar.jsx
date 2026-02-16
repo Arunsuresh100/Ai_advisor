@@ -51,10 +51,10 @@ const Navbar = () => {
         
         {/* Navigation Links */}
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide text-gray-400">
-          <Link to="/" className={`hover:text-primary-400 transition-colors ${location.pathname === '/' ? 'text-primary-500' : ''}`}>Features</Link>
-          <Link to="/#how-it-works" className="hover:text-primary-400 transition-colors">How it works</Link>
+          <Link to="/#capabilities" className={`hover:text-primary-400 transition-colors ${location.pathname === '/' ? 'text-primary-500' : ''}`}>Features</Link>
+          <Link to="/how-it-works" className={`hover:text-primary-400 transition-colors ${location.pathname === '/how-it-works' ? 'text-primary-500' : ''}`}>How it works</Link>
           <Link to="/ai-advisor" className={`hover:text-primary-400 transition-colors ${isChat ? 'text-primary-500' : ''}`}>AI Advisor</Link>
-          <Link to="/#about" className="hover:text-primary-400 transition-colors">About</Link>
+          <Link to="/about" className={`hover:text-primary-400 transition-colors ${location.pathname === '/about' ? 'text-primary-500' : ''}`} onClick={() => window.scrollTo(0,0)}>About</Link>
           <Link to="/contact" className={`hover:text-primary-400 transition-colors ${location.pathname === '/contact' ? 'text-primary-500' : ''}`}>Contact</Link>
         </div>
 

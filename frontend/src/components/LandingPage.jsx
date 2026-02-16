@@ -2,7 +2,7 @@
 import React from 'react';
 import Navbar from './Navbar';
 import Hero from './Hero';
-import About from './About';
+import Capabilities from './Capabilities';
 import BuiltFor from './BuiltFor';
 import FeatureExplorer from './FeatureExplorer';
 import Footer from './Footer';
@@ -12,7 +12,7 @@ const LandingPage = () => {
     <div className="min-h-screen bg-mesh font-sans overflow-x-hidden selection:bg-primary-500/30 selection:text-black">
       <Navbar />
       <Hero />
-      <About />
+      <Capabilities />
       <BuiltFor />
       <FeatureExplorer />
       <Footer />

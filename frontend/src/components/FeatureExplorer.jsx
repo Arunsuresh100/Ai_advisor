@@ -85,7 +85,7 @@ const FeatureExplorer = () => {
     <section id="details" className="py-24 px-6 bg-[#000000] relative overflow-hidden">
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16 animate-fade-in">
-          <div className="inline-block px-4 py-1.5 rounded-full border border-primary-500/30 text-primary-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-6">
+          <div className="inline-block px-4 py-1.5 rounded-full border border-gold-500/30 text-gold-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-6">
             EXPLORE FEATURES
           </div>
           <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-4 tracking-tight">
