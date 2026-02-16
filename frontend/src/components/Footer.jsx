@@ -1,5 +1,5 @@
-
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
@@ -8,15 +8,17 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-gradient-to-tr from-primary-600 to-green-400 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-gradient-to-tr from-primary-600 to-green-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                 </svg>
               </div>
-              <span className="font-display font-bold text-xl tracking-tight">LEGAL<span className="text-primary-500 font-extrabold">BOT</span></span>
+              <span className="font-display font-bold text-2xl tracking-tight text-white uppercase">
+                Nyay<span className="text-primary-500">AI</span>
+              </span>
             </div>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              Democratizing legal access through cutting-edge AI technology. Expert guidance, simplified for everyone.
+            <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-sm">
+              India's First Legal Research Toolkit. Empowering every Indian with accessible legal knowledge through AI.
             </p>
             <div className="flex gap-4">
               <a href="#" className="w-10 h-10 border border-surface-border rounded-full flex items-center justify-center hover:bg-primary-600 hover:border-primary-600 transition-all text-gray-400 hover:text-white transform hover:scale-110">
@@ -28,24 +30,40 @@ const Footer = () => {
             </div>
           </div>
           
-          <div>
-            <h4 className="font-display font-bold text-white mb-6 uppercase tracking-wider text-xs">Features</h4>
-            <ul className="space-y-4 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-primary-400 transition-colors">AI Advisor Chat</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Guideline Database</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Risk Assessment</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Legal Research</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-display font-bold text-white mb-6 uppercase tracking-wider text-xs">Platform</h4>
-            <ul className="space-y-4 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Documentation</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Case Precedents</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-primary-400 transition-colors">Compliance</a></li>
-            </ul>
+          {/* Links Columns */}
+          <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white mb-6">Product</h4>
+              <ul className="space-y-4">
+                <li><Link to="/features" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Features</Link></li>
+                <li><Link to="/how-it-works" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">How it Works</Link></li>
+                <li><Link to="/pricing" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Pricing</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white mb-6">Resources</h4>
+              <ul className="space-y-4">
+                <li><Link to="/blog" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Blog</Link></li>
+                <li><Link to="/faqs" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">FAQs</Link></li>
+                <li><Link to="/reviews" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Reviews</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white mb-6">Company</h4>
+              <ul className="space-y-4">
+                <li><Link to="/about" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">About Us</Link></li>
+                <li><Link to="/careers" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Careers</Link></li>
+                <li><Link to="/contact" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white mb-6">Legal</h4>
+              <ul className="space-y-4">
+                <li><Link to="/privacy" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Terms of Service</Link></li>
+                <li><Link to="/disclaimer" className="text-gray-500 hover:text-primary-400 transition-colors text-sm font-medium">Disclaimer</Link></li>
+              </ul>
+            </div>
           </div>
 
           <div>
@@ -64,8 +82,8 @@ const Footer = () => {
           </div>
         </div>
         
-        <div className="pt-8 border-t border-surface-border flex flex-col md:row items-center justify-between gap-4">
-          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest">© 2026 LegalBot AI. Empowering informed decisions.</p>
+        <div className="pt-8 border-t border-surface-border flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest">© 2026 NyayAI. Empowering informed decisions.</p>
           <div className="flex gap-6 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
             <span>Powered by GPT-4 & India Legal Dataset</span>
           </div>

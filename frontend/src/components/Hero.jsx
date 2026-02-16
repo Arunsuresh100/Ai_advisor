@@ -127,19 +127,19 @@ const Hero = () => {
           
           {/* Left Column: Strategic Content */}
           <div className="flex-1 text-left space-y-8">
-            <h1 className="text-6xl md:text-8xl font-display font-black tracking-tight leading-[1] animate-slide-up">
-              Welcome to <br />
-              <span className="text-gradient-gold">LegalBot</span>
+            <h1 className="text-6xl md:text-8xl font-display font-black tracking-tight leading-[1] animate-slide-up text-white">
+              The Smarter Way <br />
+              <span className="text-gradient-gold text-5xl md:text-7xl">to Research Indian Law</span>
             </h1>
 
             <p className="text-gray-400 text-base md:text-lg max-w-2xl leading-relaxed font-medium animate-slide-up animate-delay-200">
-              Empowering you with AI-driven legal intelligence. <br className="hidden md:block" /> Get instant guidance, research help, and document insights.
+              Your complete legal research toolkit. NyayAI handles complex case research, document analysis, and instant legal queries—all grounded in Indian statutes and judgments.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-6 animate-slide-up animate-delay-300">
               <Link to="/ai-advisor" className="group relative px-8 py-4 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-2xl transition-all duration-500 overflow-hidden shadow-2xl shadow-primary-600/30">
                 <span className="relative z-10 flex items-center gap-3">
-                  Start Consultation
+                  Ask Your First Question Free
                   <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
