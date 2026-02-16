@@ -11,6 +11,7 @@ import Contact from './components/Contact';
 import Help from './components/Help';
 import UserDashboard from './components/UserDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import AdminGate from './components/AdminGate';
 import Login from './components/Login';
 import Register from './components/Register';
 
@@ -52,7 +53,9 @@ function App() {
               path="/admin" 
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
+                  <AdminGate>
+                    <AdminDashboard />
+                  </AdminGate>
                 </ProtectedRoute>
               } 
             />

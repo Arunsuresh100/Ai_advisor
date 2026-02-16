@@ -1,16 +1,44 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
 const Contact = () => {
   const { user } = useAuth();
+  const [formData, setFormData] = useState({
+    subject: '',
+    message: ''
+  });
+  const [status, setStatus] = useState({ loading: false, success: false, error: null });
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      setStatus({ loading: true, success: false, error: null });
+      await axios.post('http://localhost:5000/api/messages', {
+        fullName: user.name,
+        email: user.email,
+        subject: formData.subject,
+        message: formData.message
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setStatus({ loading: false, success: true, error: null });
+      setFormData({ subject: '', message: '' });
+      setTimeout(() => setStatus(prev => ({ ...prev, success: false })), 5000);
+    } catch (err) {
+      setStatus({ loading: false, success: false, error: 'Failed to send message. Please try again.' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#000000] font-sans selection:bg-primary-500/30 selection:text-black">
@@ -53,56 +81,76 @@ const Contact = () => {
                   </div>
                 </div>
 
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleSubmit}>
+                  {status.success && (
+                    <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-2xl text-sm font-medium animate-fade-in text-center">
+                      Message sent successfully! We'll get back to you soon.
+                    </div>
+                  )}
+                  {status.error && (
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl text-sm font-medium animate-fade-in text-center">
+                      {status.error}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-left">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest ml-1">Name</label>
                       <input 
                         type="text" 
-                        placeholder="Your name" 
-                        defaultValue={user?.name || ''}
-                        className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-primary-500 transition-all font-medium placeholder:text-gray-600"
+                        readOnly
+                        value={user?.name || ''}
+                        className="w-full bg-[#1a1a1a]/50 border border-white/5 rounded-2xl px-6 py-4 text-gray-500 text-sm focus:outline-none transition-all font-medium cursor-not-allowed"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-left">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest ml-1">Email</label>
                       <input 
                         type="email" 
-                        placeholder="your@email.com" 
-                        defaultValue={user?.email || ''}
-                        className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-primary-500 transition-all font-medium placeholder:text-gray-600"
+                        readOnly
+                        value={user?.email || ''}
+                        className="w-full bg-[#1a1a1a]/50 border border-white/5 rounded-2xl px-6 py-4 text-gray-500 text-sm focus:outline-none transition-all font-medium cursor-not-allowed"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-left">
                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest ml-1">Subject</label>
                     <input 
                       type="text" 
+                      required
                       placeholder="What is this regarding?" 
+                      value={formData.subject}
+                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                       className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-primary-500 transition-all font-medium placeholder:text-gray-600"
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-left">
                     <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest ml-1">Message</label>
                     <textarea 
                       rows="6" 
+                      required
                       placeholder="Your message..." 
+                      value={formData.message}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       className="w-full bg-[#1a1a1a] border border-white/5 rounded-[24px] px-6 py-4 text-white text-sm focus:outline-none focus:border-primary-500 transition-all font-medium placeholder:text-gray-600 resize-none"
                     ></textarea>
                   </div>
 
                   <button 
                     type="submit" 
-                    disabled={!user}
-                    className={`w-full font-bold py-4 rounded-2xl transition-all duration-300 shadow-lg text-sm ${
+                    disabled={!user || status.loading}
+                    className={`w-full font-bold py-4 rounded-2xl transition-all duration-300 shadow-lg text-sm flex items-center justify-center gap-2 ${
                       user 
                         ? 'bg-primary-600 hover:bg-primary-500 text-white shadow-primary-600/20 active:scale-[0.98]' 
                         : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5'
                     }`}
                   >
-                    {user ? 'Send Message' : 'Login to Send Message'}
+                    {status.loading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      user ? 'Send Message' : 'Login to Send Message'
+                    )}
                   </button>
                 </form>
               </div>

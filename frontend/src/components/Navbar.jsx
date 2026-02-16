@@ -18,6 +18,8 @@ const Navbar = () => {
     setIsDropdownOpen(false);
   };
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -28,6 +30,29 @@ const Navbar = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      fetchUnreadCount();
+      // Poll every 1 minute
+      const interval = setInterval(fetchUnreadCount, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch('http://localhost:5000/api/messages/unread-count', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setUnreadCount(data.unreadCount);
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err);
+    }
+  };
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
@@ -49,14 +74,16 @@ const Navbar = () => {
           </div>
         </Link>
         
-        {/* Navigation Links */}
-        <div className="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide text-gray-400">
-          <Link to="/#capabilities" className={`hover:text-primary-400 transition-colors ${location.pathname === '/' ? 'text-primary-500' : ''}`}>Features</Link>
-          <Link to="/how-it-works" className={`hover:text-primary-400 transition-colors ${location.pathname === '/how-it-works' ? 'text-primary-500' : ''}`}>How it works</Link>
-          <Link to="/ai-advisor" className={`hover:text-primary-400 transition-colors ${isChat ? 'text-primary-500' : ''}`}>AI Advisor</Link>
-          <Link to="/about" className={`hover:text-primary-400 transition-colors ${location.pathname === '/about' ? 'text-primary-500' : ''}`} onClick={() => window.scrollTo(0,0)}>About</Link>
-          <Link to="/contact" className={`hover:text-primary-400 transition-colors ${location.pathname === '/contact' ? 'text-primary-500' : ''}`}>Contact</Link>
-        </div>
+        {/* Navigation Links - Hidden for Admin */}
+        {user?.role !== 'admin' && (
+          <div className="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide text-gray-400">
+            <Link to="/#capabilities" className={`hover:text-primary-400 transition-colors ${location.pathname === '/' ? 'text-primary-500' : ''}`}>Features</Link>
+            <Link to="/how-it-works" className={`hover:text-primary-400 transition-colors ${location.pathname === '/how-it-works' ? 'text-primary-500' : ''}`}>How it works</Link>
+            <Link to="/ai-advisor" className={`hover:text-primary-400 transition-colors ${isChat ? 'text-primary-500' : ''}`}>AI Advisor</Link>
+            <Link to="/about" className={`hover:text-primary-400 transition-colors ${location.pathname === '/about' ? 'text-primary-500' : ''}`} onClick={() => window.scrollTo(0,0)}>About</Link>
+            <Link to="/contact" className={`hover:text-primary-400 transition-colors ${location.pathname === '/contact' ? 'text-primary-500' : ''}`}>Contact</Link>
+          </div>
+        )}
 
         {/* Auth Buttons / User Dropdown */}
         <div className="flex items-center gap-4">
@@ -71,8 +98,11 @@ const Navbar = () => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-3 bg-white/5 hover:bg-white/10 transition-colors rounded-full pl-2 pr-4 py-1.5 border border-white/10 group shadow-lg"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-primary-300 flex items-center justify-center text-xs font-bold text-white uppercase shadow-inner">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-primary-300 flex items-center justify-center text-xs font-bold text-white uppercase shadow-inner relative">
                   {user.name?.charAt(0) || 'U'}
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 border-2 border-slate-950 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.4)]"></span>
+                  )}
                 </div>
                 <span className="text-sm font-medium text-gray-200 group-hover:text-white">{user.name?.split(' ')[0]}</span>
                 <svg className={`w-4 h-4 text-gray-500 group-hover:text-gray-300 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,12 +118,24 @@ const Navbar = () => {
                     <p className="text-xs text-gray-400 truncate mt-0.5 font-medium">{user.email}</p>
                   </div>
                   
-                  <Link to="/user" className="flex items-center gap-3 px-5 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors" onClick={() => setIsDropdownOpen(false)}>
-                    <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    </div>
-                    Profile Settings
-                  </Link>
+                  {/* Hide Profile Settings for Admin */}
+                  {user.role !== 'admin' && (
+                    <Link to="/user" className="flex items-center gap-3 px-5 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors" onClick={() => setIsDropdownOpen(false)}>
+                      <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      </div>
+                      Profile Settings
+                    </Link>
+                  )}
+
+                  {user.role === 'admin' && (
+                    <Link to="/admin" className="flex items-center gap-3 px-5 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors" onClick={() => setIsDropdownOpen(false)}>
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                      </div>
+                      Admin Dashboard
+                    </Link>
+                  )}
                   <div className="h-px bg-white/5 mx-2 my-1"></div>
                   <button 
                     onClick={handleLogout}
