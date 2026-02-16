@@ -3,8 +3,11 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import { useAuth } from '../context/AuthContext';
 
 const Contact = () => {
+  const { user } = useAuth();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -57,6 +60,7 @@ const Contact = () => {
                       <input 
                         type="text" 
                         placeholder="Your name" 
+                        defaultValue={user?.name || ''}
                         className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-primary-500 transition-all font-medium placeholder:text-gray-600"
                       />
                     </div>
@@ -65,6 +69,7 @@ const Contact = () => {
                       <input 
                         type="email" 
                         placeholder="your@email.com" 
+                        defaultValue={user?.email || ''}
                         className="w-full bg-[#1a1a1a] border border-white/5 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-primary-500 transition-all font-medium placeholder:text-gray-600"
                       />
                     </div>
@@ -90,9 +95,14 @@ const Contact = () => {
 
                   <button 
                     type="submit" 
-                    className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-primary-600/20 active:scale-[0.98] text-sm"
+                    disabled={!user}
+                    className={`w-full font-bold py-4 rounded-2xl transition-all duration-300 shadow-lg text-sm ${
+                      user 
+                        ? 'bg-primary-600 hover:bg-primary-500 text-white shadow-primary-600/20 active:scale-[0.98]' 
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5'
+                    }`}
                   >
-                    Send Message
+                    {user ? 'Send Message' : 'Login to Send Message'}
                   </button>
                 </form>
               </div>
@@ -110,7 +120,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Email</div>
-                      <div className="text-gray-300 font-medium text-sm md:text-base">support@nyayguru.com</div>
+                      <div className="text-gray-300 font-medium text-sm md:text-base">support@gmail.com</div>
                     </div>
                   </div>
 
@@ -120,7 +130,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Location</div>
-                      <div className="text-gray-300 font-medium text-sm md:text-base">Jaipur, India</div>
+                      <div className="text-gray-300 font-medium text-sm md:text-base">Changanacherry, Kottayam</div>
                     </div>
                   </div>
                 </div>
