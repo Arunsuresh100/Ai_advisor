@@ -1,64 +1,101 @@
-
 import React from 'react';
 
 const About = () => {
-  const categories = [
+  const capabilities = [
     {
-      title: 'Litigants',
-      desc: 'Understand your rights clearly and navigate legal notices effectively.',
-      icon: '🏛️'
+      title: 'AI Legal Chat',
+      desc: 'Ask anything about Indian law. Get answers grounded in statutes, judgments, and legal procedures in any Indian language.',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      ),
+      color: '#10b981', // Emerald
+      tags: ['Multi-language', 'Voice Input', 'Live Web Search'],
+      iconBg: 'bg-primary-600/20 text-primary-500'
     },
     {
-      title: 'Lawyers',
-      desc: 'Research judgments instantly and prepare bail applications faster.',
-      icon: '⚖️'
+      title: 'Document Intelligence',
+      desc: 'Upload contracts, notices, or case files. Ask questions and get AI-powered analysis instantly.',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      color: '#10b981', // Emerald
+      tags: ['PDF & DOCX', 'OCR Support', 'Cloud Storage'],
+      iconBg: 'bg-emerald-600/20 text-emerald-500'
     },
     {
-      title: 'Law Students',
-      desc: 'Learn law with AI guidance and organize case-wise legal research.',
-      icon: '🎓'
+      title: 'Case & Knowledge Management',
+      desc: 'Keep your legal research organized by case, client, or topic in collections. Find any insight in seconds.',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+      ),
+      color: '#f59e0b', // Orange
+      tags: ['Collections', 'Global Search', 'Share via Link'],
+      iconBg: 'bg-orange-600/20 text-orange-500'
     },
     {
-      title: 'Law Firms',
-      desc: 'Prepare applications faster and share findings with teams instantly.',
-      icon: '🏢'
+      title: 'Security & Privacy',
+      desc: 'Enterprise-grade security. Your conversations and documents remain completely confidential.',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      ),
+      color: '#6366f1', // Indigo
+      tags: ['End-to-End Privacy', 'Not Used for AI Training', 'Delete Anytime'],
+      iconBg: 'bg-indigo-600/20 text-indigo-500'
     }
   ];
 
   return (
-    <section id="about" className="py-32 px-6 bg-slate-950/20">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-20">
-          <div className="inline-block px-4 py-1.5 bg-primary-950/30 border border-primary-900/50 rounded-lg text-primary-400 text-xs font-bold tracking-widest uppercase mb-6">
-            NyayAI Ecosystem
+    <section id="capabilities" className="py-24 px-6 bg-[#000000] relative overflow-hidden">
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="text-center mb-16 animate-fade-in">
+          <div className="inline-block px-4 py-1.5 rounded-full border border-primary-500/30 text-primary-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-6">
+            CORE CAPABILITIES
           </div>
-          <h2 className="text-4xl md:text-6xl font-display font-bold text-white mb-6">
-            Built for <span className="text-gradient">Legal Clarity</span>
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6 tracking-tight">
+            Everything You Need for Legal Clarity
           </h2>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Our platform is designed to serve every stakeholder in the Indian legal system.
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {categories.map((cat, idx) => (
-            <div key={idx} className="glass-card p-10 group hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-2">
-              <div className="text-4xl mb-6 transform group-hover:scale-110 transition-transform">
-                {cat.icon}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+          {capabilities.map((cap, idx) => (
+            <div 
+              key={idx} 
+              className="bg-[#111111] p-8 rounded-[32px] border border-white/5 group hover:border-primary-500/20 transition-all duration-500"
+            >
+              <div className="flex gap-6 items-start">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${cap.iconBg}`}>
+                  {cap.icon}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-white mb-2 tracking-tight group-hover:text-primary-500 transition-colors">
+                    {cap.title}
+                  </h3>
+                  <p className="text-gray-400 text-[13px] leading-relaxed mb-6 font-medium">
+                    {cap.desc}
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {cap.tags.map((tag, tIdx) => (
+                      <span 
+                        key={tIdx} 
+                        className="px-3 py-1 bg-[#262626] rounded-full text-[9px] font-bold text-gray-500 uppercase tracking-widest"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <h4 className="text-xl font-bold text-white mb-4">{cat.title}</h4>
-              <p className="text-gray-500 text-sm leading-relaxed">
-                {cat.desc}
-              </p>
             </div>
           ))}
-        </div>
-        
-        <div className="mt-24 p-12 glass-card bg-primary-600/5 border-primary-500/20 text-center relative overflow-hidden group">
-          <div className="absolute inset-0 bg-primary-600/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
-          <h3 className="text-2xl md:text-3xl font-bold text-white mb-6 relative z-10">Ready to Navigate Indian Law with Confidence?</h3>
-          <p className="text-gray-400 mb-8 max-w-xl mx-auto relative z-10">Ask your first legal question for free. No signup required to start exploring clarity.</p>
-          <button className="premium-button px-10 py-4 relative z-10">Ask Your First Question Free</button>
         </div>
       </div>
     </section>

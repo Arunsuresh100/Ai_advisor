@@ -213,7 +213,7 @@ const UserDashboard = () => {
             <form onSubmit={handleProfileUpdate} className="space-y-8 mb-12">
               <div className="flex items-center gap-8 p-6 glass-card rounded-3xl border-white/5">
                 <div className="relative group">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary-500 to-emerald-400 flex items-center justify-center text-3xl font-bold text-white shadow-2xl overflow-hidden ring-4 ring-white/5">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary-600 to-primary-400 flex items-center justify-center text-3xl font-bold text-white shadow-2xl overflow-hidden ring-4 ring-white/5">
                     {profileData.name?.charAt(0) || 'U'}
                   </div>
                   <button type="button" className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full text-xs font-bold uppercase tracking-widest text-white">
@@ -337,7 +337,7 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-white">
+    <div className="min-h-screen bg-surface-background font-sans text-white">
       <Navbar />
       
       {/* Toast Notification */}
@@ -355,7 +355,7 @@ const UserDashboard = () => {
       )}
 
       {/* Modern Sidebar Integration */}
-      <aside className="w-72 bg-slate-900 border-r border-white/5 flex flex-col h-screen fixed left-0 top-0 pt-24 z-40">
+      <aside className="w-72 bg-surface-card border-r border-white/5 flex flex-col h-screen fixed left-0 top-0 pt-24 z-40">
         <div className="flex-1 px-6 py-8 space-y-3">
           {[
             { id: 'account', label: 'Account', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },

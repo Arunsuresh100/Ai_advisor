@@ -72,7 +72,7 @@ const Login = () => {
           <div className="glass-card p-8 border-primary-500/20 relative backdrop-blur-3xl shadow-2xl">
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-gradient-to-tr from-primary-600 to-green-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
+              <div className="w-12 h-12 bg-gradient-to-tr from-primary-600 to-primary-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
@@ -134,7 +134,7 @@ const Login = () => {
               <button 
                 type="submit" 
                 disabled={loading}
-                className={`w-full py-4 mt-6 rounded-xl bg-gradient-to-r from-primary-600 to-green-500 text-white font-bold text-sm tracking-widest uppercase shadow-lg shadow-primary-600/20 hover:shadow-primary-600/40 transform transition-all duration-300 active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
+                className={`w-full py-4 mt-6 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold text-sm tracking-widest uppercase shadow-lg shadow-primary-600/20 hover:shadow-primary-600/40 transform transition-all duration-300 active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
               >
                 {loading ? (
                   <div className="flex items-center justify-center gap-2">
@@ -163,10 +163,10 @@ const Login = () => {
       {showSuccessModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-fade-in"></div>
-          <div className="glass-card max-w-sm w-full p-10 border-primary-500/40 text-center relative z-10 animate-scale-up shadow-[0_0_80px_-15px_rgba(34,197,94,0.4)]">
+          <div className="glass-card max-w-sm w-full p-10 border-primary-500/40 text-center relative z-10 animate-scale-up shadow-[0_0_80px_-15px_rgba(16,185,129,0.4)]">
             <div className="w-24 h-24 bg-primary-600/20 border border-primary-500/30 rounded-full flex items-center justify-center mx-auto mb-8 relative">
                <div className="absolute inset-0 rounded-full bg-primary-500 animate-ping opacity-20"></div>
-              <div className="w-16 h-16 bg-gradient-to-tr from-primary-600 to-green-400 rounded-full flex items-center justify-center text-white shadow-xl">
+              <div className="w-16 h-16 bg-gradient-to-tr from-primary-600 to-primary-400 rounded-full flex items-center justify-center text-black shadow-xl">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M5 13l4 4L19 7"/></svg>
               </div>
             </div>

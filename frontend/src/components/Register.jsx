@@ -120,7 +120,7 @@ const Register = () => {
           <div className="glass-card p-8 border-primary-500/20 relative backdrop-blur-3xl shadow-2xl">
             {/* ... rest of the card ... */}
             <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-gradient-to-tr from-primary-600 to-green-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
+              <div className="w-12 h-12 bg-gradient-to-tr from-primary-600 to-primary-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 003 11c0-2.778 1.133-5.289 2.972-7.102m.023 0A9.99 9.99 0 0112 1.5c2.25 0 4.316.74 5.977 2.102m0 0A9.991 9.991 0 0121 11c0 2.778-1.133 5.289-2.972 7.102" />
                 </svg>
@@ -214,7 +214,7 @@ const Register = () => {
               <button 
                 type="submit" 
                 disabled={loading}
-                className={`w-full py-4 mt-4 rounded-xl bg-gradient-to-r from-primary-600 to-green-500 text-white font-bold text-sm tracking-widest uppercase shadow-lg shadow-primary-600/20 hover:shadow-primary-600/40 transform transition-all duration-300 active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
+                className={`w-full py-4 mt-4 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold text-sm tracking-widest uppercase shadow-lg shadow-primary-600/20 hover:shadow-primary-600/40 transform transition-all duration-300 active:scale-[0.98] ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
               >
                 {loading ? (
                   <div className="flex items-center justify-center gap-2">
@@ -243,10 +243,10 @@ const Register = () => {
       {showSuccessModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-fade-in"></div>
-          <div className="glass-card max-w-sm w-full p-10 border-primary-500/40 text-center relative z-10 animate-scale-up shadow-[0_0_80px_-15px_rgba(34,197,94,0.4)]">
+          <div className="glass-card max-w-sm w-full p-10 border-primary-500/40 text-center relative z-10 animate-scale-up shadow-[0_0_80px_-15px_rgba(16,185,129,0.4)]">
             <div className="w-24 h-24 bg-primary-600/20 border border-primary-500/30 rounded-full flex items-center justify-center mx-auto mb-8 relative">
                <div className="absolute inset-0 rounded-full bg-primary-500 animate-ping opacity-20"></div>
-              <div className="w-16 h-16 bg-gradient-to-tr from-primary-600 to-green-400 rounded-full flex items-center justify-center text-white shadow-xl">
+              <div className="w-16 h-16 bg-gradient-to-tr from-primary-600 to-primary-400 rounded-full flex items-center justify-center text-black shadow-xl">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" d="M5 13l4 4L19 7"/></svg>
               </div>
             </div>

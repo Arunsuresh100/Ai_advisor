@@ -97,11 +97,11 @@ const ChatInterface = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-white flex flex-col xl:flex-row overflow-hidden">
+    <div className="min-h-screen bg-surface-background font-sans text-white flex flex-col xl:flex-row overflow-hidden">
       <Navbar />
       
       {/* Premium Sidebar: The Legal Library */}
-      <aside className="w-full xl:w-80 bg-slate-900/30 backdrop-blur-3xl border-r border-white/5 pt-28 pb-8 px-6 flex flex-col gap-8 hidden xl:flex relative z-30">
+      <aside className="w-full xl:w-80 bg-surface-card/30 backdrop-blur-3xl border-r border-white/5 pt-28 pb-8 px-6 flex flex-col gap-8 hidden xl:flex relative z-30">
         <div className="absolute inset-0 bg-gradient-to-b from-primary-600/5 to-transparent pointer-events-none"></div>
         
         <div className="flex items-center justify-between relative z-10">
@@ -133,8 +133,8 @@ const ChatInterface = () => {
         {/* Removed Upgrade to Pro Section */}
         <div className="relative z-10 pt-4 border-t border-white/5">
            <div className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-white/5 border border-white/5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                 <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+              <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center">
+                 <svg className="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
               </div>
               <div>
                  <p className="text-[10px] font-black uppercase text-gray-500">Security State</p>
@@ -145,12 +145,12 @@ const ChatInterface = () => {
       </aside>
 
       {/* Main Sanctuary Interface */}
-      <main className="flex-1 flex flex-col h-screen pt-20 xl:pt-0 relative overflow-hidden bg-slate-950">
+      <main className="flex-1 flex flex-col h-screen pt-20 xl:pt-0 relative overflow-hidden bg-surface-background">
         {/* Dynamic Background */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-600/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
         {/* Integrated Header */}
-        <div className="px-8 py-6 border-b border-white/5 bg-slate-950/20 backdrop-blur-3xl flex items-center justify-between z-20">
+        <div className="px-8 py-6 border-b border-white/5 bg-surface-background/20 backdrop-blur-3xl flex items-center justify-between z-20">
           <div className="flex items-center gap-6">
              <div className="hidden xl:block">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary-500/50 mb-1">Current File</p>
@@ -159,8 +159,8 @@ const ChatInterface = () => {
              <div className="h-8 w-[1px] bg-white/5 hidden xl:block"></div>
              <div className="flex items-center gap-3">
                 <div className="relative">
-                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                   <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-25"></div>
+                   <div className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-pulse"></div>
+                   <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-primary-500 animate-ping opacity-25"></div>
                 </div>
                 <p className="text-[10px] text-gray-400 font-black tracking-widest uppercase">Neural Core Alpha-7 Online</p>
              </div>
@@ -169,7 +169,7 @@ const ChatInterface = () => {
           <div className="flex items-center gap-4">
              <div className="text-right hidden md:block">
                 <p className="text-[10px] font-black uppercase text-gray-500">Latency</p>
-                <p className="text-[11px] font-bold text-emerald-500">24ms</p>
+                <p className="text-[11px] font-bold text-primary-500">24ms</p>
              </div>
              <button className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/5">
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -182,15 +182,15 @@ const ChatInterface = () => {
           <div className="max-w-4xl mx-auto space-y-10">
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-6 ${msg.role === 'user' ? 'flex-row-reverse animate-slide-up' : 'flex-row animate-slide-up'}`}>
-                <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center text-[11px] font-black transition-transform hover:scale-110 shadow-2xl ${msg.role === 'user' ? 'bg-primary-600 text-white' : 'bg-slate-900 text-primary-500 border border-white/10 shadow-primary-900/50'}`}>
-                  {msg.role === 'user' ? user?.username?.[0]?.toUpperCase() : (
+                <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center text-[11px] font-black transition-transform hover:scale-110 shadow-2xl ${msg.role === 'user' ? 'bg-primary-600 text-white' : 'bg-surface-card text-primary-500 border border-white/10 shadow-primary-900/50'}`}>
+                  {msg.role === 'user' ? user?.name?.[0]?.toUpperCase() : (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                   )}
                 </div>
                 <div className={`max-w-[80%] group ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                   <div className={`inline-block px-8 py-5 rounded-[32px] text-base leading-relaxed font-medium transition-all duration-500 border ${
                     msg.role === 'user' 
-                      ? 'bg-primary-600 text-white rounded-tr-none border-primary-500 hover:bg-primary-500 shadow-[0_10px_30px_rgba(37,99,235,0.2)]' 
+                      ? 'bg-primary-600 text-white rounded-tr-none border-primary-500 hover:bg-primary-500 shadow-lg shadow-primary-500/20' 
                       : 'bg-white/[0.03] backdrop-blur-2xl text-gray-300 border-white/5 rounded-tl-none hover:border-primary-500/30'
                   }`}>
                     {msg.attachment && (
@@ -215,7 +215,7 @@ const ChatInterface = () => {
             
             {loading && (
               <div className="flex gap-6 animate-pulse">
-                <div className="w-10 h-10 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-surface-card border border-white/10 flex items-center justify-center">
                    <svg className="w-5 h-5 text-primary-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 </div>
                 <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 px-8 py-5 rounded-[32px] rounded-tl-none flex gap-3 items-center">
@@ -233,7 +233,7 @@ const ChatInterface = () => {
         </div>
 
         {/* Global Input Console */}
-        <div className="p-6 md:p-10 bg-slate-950/80 backdrop-blur-3xl border-t border-white/5 relative z-30">
+        <div className="p-6 md:p-10 bg-surface-background/80 backdrop-blur-3xl border-t border-white/5 relative z-30">
           <div className="max-w-4xl mx-auto">
             {attachment && (
               <div className="mb-4 flex items-center gap-3 animate-slide-up">
@@ -276,7 +276,7 @@ const ChatInterface = () => {
                     }
                   }}
                   placeholder="Analyze legal documents or ask a complex query..."
-                  className="w-full bg-slate-900 border border-white/10 rounded-2xl pl-16 pr-16 py-5 text-base text-white focus:outline-none focus:border-primary-500/50 transition-all shadow-inner relative z-10 font-medium placeholder:text-gray-600 resize-none scrollbar-hide min-h-[64px] max-h-[200px]"
+                  className="w-full bg-surface-card border border-white/10 rounded-2xl pl-16 pr-16 py-5 text-base text-white focus:outline-none focus:border-primary-500/50 transition-all shadow-inner relative z-10 font-medium placeholder:text-gray-600 resize-none scrollbar-hide min-h-[64px] max-h-[200px]"
                 />
                 <button 
                   type="submit"

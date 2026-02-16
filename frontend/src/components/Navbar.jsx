@@ -34,7 +34,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
         {/* Logo Section */}
         <Link to="/" className="flex items-center gap-4 group cursor-pointer">
-          <div className="w-12 h-12 bg-gradient-to-tr from-primary-600 to-emerald-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 bg-gradient-to-tr from-primary-600 to-primary-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20 group-hover:scale-110 transition-transform">
             <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
             </svg>
@@ -71,7 +71,7 @@ const Navbar = () => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-3 bg-white/5 hover:bg-white/10 transition-colors rounded-full pl-2 pr-4 py-1.5 border border-white/10 group shadow-lg"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-emerald-400 flex items-center justify-center text-xs font-bold text-white uppercase shadow-inner">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-primary-300 flex items-center justify-center text-xs font-bold text-white uppercase shadow-inner">
                   {user.name?.charAt(0) || 'U'}
                 </div>
                 <span className="text-sm font-medium text-gray-200 group-hover:text-white">{user.name?.split(' ')[0]}</span>

@@ -8,13 +8,13 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-tr from-primary-600 to-green-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
+              <div className="w-10 h-10 bg-gradient-to-tr from-primary-600 to-primary-400 rounded-xl flex items-center justify-center shadow-lg shadow-primary-600/20">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                 </svg>
               </div>
               <span className="font-display font-bold text-2xl tracking-tight text-white uppercase">
-                Nyay<span className="text-primary-500">AI</span>
+                LAW<span className="text-primary-500">ADVISOR</span>
               </span>
             </div>
             <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-sm">
@@ -83,7 +83,7 @@ const Footer = () => {
         </div>
         
         <div className="pt-8 border-t border-surface-border flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest">© 2026 NyayAI. Empowering informed decisions.</p>
+          <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-widest">© 2026 LAW ADVISOR. Empowering informed decisions.</p>
           <div className="flex gap-6 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
             <span>Powered by GPT-4 & India Legal Dataset</span>
           </div>

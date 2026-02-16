@@ -94,7 +94,7 @@ const Help = () => {
 
         {/* Still Need Help? */}
         <div className="mt-32 glass-card p-12 text-center border-primary-500/10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-green-400 opacity-20"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-primary-400 opacity-20"></div>
           <h2 className="text-3xl font-bold mb-4 font-display">Still need help?</h2>
           <p className="text-gray-400 mb-8 max-w-xl mx-auto">
             If you couldn't find the answer you were looking for, our support team is available via email or live chat.
