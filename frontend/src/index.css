@@ -114,4 +114,23 @@ html {
 .animate-delay-100 { animation-delay: 100ms; }
 .animate-delay-200 { animation-delay: 200ms; }
 .animate-delay-300 { animation-delay: 300ms; }
-.animate-delay-500 { animation-delay: 500ms; }
+
+/* Markdown Styling for Legal Content */
+.markdown-content h1 {
+  @apply text-2xl font-black text-white mb-4 mt-2 tracking-tight border-b border-white/5 pb-2;
+}
+.markdown-content h3 {
+  @apply text-lg font-bold text-emerald-500 mb-2 mt-4 tracking-wide;
+}
+.markdown-content p {
+  @apply mb-4 text-gray-300 leading-relaxed;
+}
+.markdown-content strong {
+  @apply text-white font-black px-1 rounded-sm bg-emerald-500/10;
+}
+.markdown-content ul {
+  @apply list-disc pl-5 mb-4 space-y-2 text-gray-300;
+}
+.markdown-content li strong {
+  @apply text-emerald-400 bg-transparent px-0;
+}
