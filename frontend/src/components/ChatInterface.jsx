@@ -4,9 +4,9 @@ import Navbar from './Navbar';
 import { useAuth } from '../context/AuthContext';
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Hello! I am your AI Advisor. How can I assist you with legal queries today?', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-  ]);
+  const [messages, setMessages] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [currentChatId, setCurrentChatId] = useState(localStorage.getItem('currentChatId') || null);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [attachment, setAttachment] = useState(null);
@@ -23,13 +23,78 @@ const ChatInterface = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Check authentication
+  // Check authentication and load initial data
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
+    } else {
+      fetchHistory();
+      if (currentChatId) {
+        loadChat(currentChatId);
+      } else {
+        // Initial greeting if no chat selected
+        setMessages([{ 
+          role: 'ai', 
+          text: 'Hello! I am your AI Advisor. How can I assist you with legal queries today?', 
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        }]);
+      }
     }
-  }, [navigate]);
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/chat/history', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) setHistory(data.data);
+    } catch (err) {
+      console.error('Failed to fetch history:', err);
+    }
+  };
+
+  const loadChat = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/chat/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMessages(data.data);
+        setCurrentChatId(id);
+        localStorage.setItem('currentChatId', id);
+      }
+    } catch (err) {
+      console.error('Failed to load chat:', err);
+    }
+  };
+
+  const handleNewChat = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/chat/new', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title: 'New Legal Consultation' }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCurrentChatId(data.data._id);
+        localStorage.setItem('currentChatId', data.data._id);
+        setMessages([]);
+        fetchHistory();
+      }
+    } catch (err) {
+      console.error('Failed to create new chat:', err);
+    }
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -71,7 +136,7 @@ const ChatInterface = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ message: currentInput }),
+        body: JSON.stringify({ message: currentInput, chatId: currentChatId }),
       });
 
       const data = await response.json();
@@ -109,25 +174,34 @@ const ChatInterface = () => {
              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary-500">Legal Vault</h3>
              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Active Sessions</p>
           </div>
-          <button className="p-2.5 rounded-xl bg-primary-600/20 text-primary-400 hover:bg-primary-600/30 transition-all border border-primary-500/20 group">
+          <button 
+            onClick={handleNewChat}
+            title="New Chat"
+            className="p-2.5 rounded-xl bg-primary-600/20 text-primary-400 hover:bg-primary-600/30 transition-all border border-primary-500/20 group"
+          >
             <svg className="w-4 h-4 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
           </button>
         </div>
         
         <div className="flex-1 space-y-3 overflow-y-auto scrollbar-hide relative z-10">
-          {[
-            'Property Dispute IPC 304',
-            'Rental Agreement Analysis',
-            'Cyber Law Overview',
-            'Contract Review #402'
-          ].map((chat, i) => (
-            <button key={i} className={`w-full group text-left p-4 rounded-2xl text-xs font-bold transition-all border ${i === 0 ? 'bg-primary-600/10 text-primary-400 border-primary-600/20 shadow-lg' : 'text-gray-500 border-transparent hover:bg-white/5 hover:text-white'}`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-primary-500 animate-pulse' : 'bg-gray-700'}`}></div>
-                <span className="truncate">{chat}</span>
-              </div>
-            </button>
-          ))}
+          {history.length === 0 ? (
+            <div className="text-center py-10 opacity-30">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No History Yet</p>
+            </div>
+          ) : (
+            history.map((chat) => (
+              <button 
+                key={chat._id} 
+                onClick={() => loadChat(chat._id)}
+                className={`w-full group text-left p-4 rounded-2xl text-xs font-bold transition-all border ${currentChatId === chat._id ? 'bg-primary-600/10 text-primary-400 border-primary-600/20 shadow-lg' : 'text-gray-500 border-transparent hover:bg-white/5 hover:text-white'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-1.5 h-1.5 rounded-full ${currentChatId === chat._id ? 'bg-primary-500 animate-pulse' : 'bg-gray-700'}`}></div>
+                  <span className="truncate">{chat.title}</span>
+                </div>
+              </button>
+            ))
+          )}
         </div>
 
         {/* Removed Upgrade to Pro Section */}
@@ -247,7 +321,7 @@ const ChatInterface = () => {
               </div>
             )}
             
-            <form onSubmit={handleSend} className="relative group flex items-end gap-4">
+            <form onSubmit={handleSend} className="relative group flex items-center gap-4">
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -256,12 +330,13 @@ const ChatInterface = () => {
                 className="hidden" 
               />
               
-              <div className="flex-1 relative group">
+              <div className="flex-1 relative group flex items-center">
                 <div className="absolute inset-0 bg-primary-600/5 blur-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-1000"></div>
                 <button 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute left-4 bottom-[14px] p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/5 text-gray-500 hover:text-primary-400 z-20"
+                  title="Attach File"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/5 text-gray-500 hover:text-primary-400 z-20"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.415a6 6 0 108.486 8.486L20.5 13"/></svg>
                 </button>
@@ -281,25 +356,13 @@ const ChatInterface = () => {
                 <button 
                   type="submit"
                   disabled={loading || (!input.trim() && !attachment)}
-                  className="absolute right-3.5 bottom-[10px] w-11 h-11 bg-primary-600 rounded-xl flex items-center justify-center text-white hover:bg-primary-500 transition-all duration-500 shadow-xl shadow-primary-950/40 disabled:opacity-20 disabled:grayscale z-20 group/btn"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 w-11 h-11 bg-primary-600 rounded-xl flex items-center justify-center text-white hover:bg-primary-500 transition-all duration-500 shadow-xl shadow-primary-950/40 disabled:opacity-20 disabled:grayscale z-20 group/btn"
                 >
                   <svg className="w-5 h-5 transition-transform group-hover/btn:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                 </button>
               </div>
             </form>
             
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
-               {[
-                 { label: 'Document Synthesis', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                 { label: 'End-to-End Encryption', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
-                 { label: 'Real-time Legal Feed', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
-               ].map((tag, i) => (
-                 <div key={i} className="flex items-center gap-2.5">
-                    <svg className="w-3.5 h-3.5 text-primary-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={tag.icon}/></svg>
-                    <span className="text-[9px] text-gray-500 font-black uppercase tracking-[0.25em]">{tag.label}</span>
-                 </div>
-               ))}
-            </div>
           </div>
         </div>
       </main>
