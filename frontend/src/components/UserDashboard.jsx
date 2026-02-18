@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import DashboardSidebar from './DashboardSidebar';
+import ConfirmationModal from './ConfirmationModal';
 import { useAuth } from '../context/AuthContext';
 
 const UserDashboard = () => {
@@ -28,6 +29,19 @@ const UserDashboard = () => {
 
   const [userMessages, setUserMessages] = useState([]);
   const [selectedInquiry, setSelectedInquiry] = useState(null);
+  
+  // Cases Management
+  const [myCases, setMyCases] = useState([]);
+  const [loadingCases, setLoadingCases] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Documents Management (Vault)
+  const [documents, setDocuments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalConfig, setModalConfig] = useState({ title: '', message: '', onConfirm: () => {}, isDanger: false });
 
   // Sync profile data when user context changes
   React.useEffect(() => {
@@ -38,8 +52,108 @@ const UserDashboard = () => {
         email: user.email
       }));
       fetchUserMessages();
+      fetchUserMessages();
+      fetchMyCases();
+      fetchDocuments();
     }
   }, [user]);
+
+  const fetchDocuments = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/documents', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setDocuments(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch documents:', err);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/documents/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setDocuments(prev => [data.data, ...prev]);
+        setToastMsg('Document Uploaded Successfully');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (err) {
+      setToastMsg(err.message || 'Upload Failed');
+      setIsError(true);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } finally {
+      setUploading(false);
+      // Reset input
+      e.target.value = null;
+    }
+  };
+
+  const handleDocumentDelete = async (docId) => {
+    openDeleteModal(
+      'Delete Document?',
+      'Are you sure you want to permanently delete this file?',
+      async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/documents/${docId}`, {
+             method: 'DELETE',
+             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          
+          if (response.ok) {
+            setDocuments(prev => prev.filter(d => d._id !== docId));
+            setToastMsg('Document Deleted');
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000);
+          }
+        } catch (err) {
+          setToastMsg('Failed to delete document');
+          setIsError(true);
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        }
+      }
+    );
+  };
+
+  const fetchMyCases = async () => {
+    setLoadingCases(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/chat/history', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMyCases(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch cases:', err);
+    } finally {
+      setLoadingCases(false);
+    }
+  };
+
 
   const fetchUserMessages = async () => {
     try {
@@ -69,6 +183,101 @@ const UserDashboard = () => {
     } catch (err) {
       console.error('Failed to mark as seen:', err);
     }
+  };
+
+  const handleViewDocument = async (docId, originalName) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/documents/${docId}/download`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to download file');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      // If we want to force download:
+      // link.setAttribute('download', originalName); 
+      // To open in new tab:
+      window.open(url, '_blank');
+      
+      // Cleanup
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error('Download Error:', err);
+      setToastMsg('Failed to open document');
+      setIsError(true);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  const openDeleteModal = (title, message, onConfirm) => {
+    setModalConfig({ title, message, onConfirm, isDanger: true });
+    setModalOpen(true);
+  };
+
+  const handleClearHistory = async () => {
+    openDeleteModal(
+      'Clear All History?',
+      'Are you sure you want to permanently delete all your consultation records? This action cannot be undone.',
+      async () => {
+        try {
+          const response = await fetch('http://localhost:5000/api/chat/history/clear', {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          const data = await response.json();
+          if (data.success) {
+            setToastMsg('All History Cleared Successfully');
+            setShowToast(true);
+            localStorage.removeItem('currentChatId');
+            fetchMyCases(); // Refresh list if on cases tab
+            setTimeout(() => setShowToast(false), 3000);
+          } else {
+            throw new Error(data.message);
+          }
+        } catch (err) {
+          setToastMsg(`Error: ${err.message}`);
+          setIsError(true);
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        }
+      }
+    );
+  };
+
+  const handleDeleteCase = async (chatId) => {
+    openDeleteModal(
+      'Delete Case?',
+      'Are you sure you want to remove this consultation record?',
+      async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/chat/${chatId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          });
+          
+          if (response.ok) {
+            setMyCases(prev => prev.filter(c => c._id !== chatId));
+            if (localStorage.getItem('currentChatId') === chatId) {
+               localStorage.removeItem('currentChatId');
+            }
+            setToastMsg('Case deleted successfully');
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000);
+          }
+        } catch (err) {
+          setToastMsg('Failed to delete case');
+          setIsError(true);
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        }
+      }
+    );
   };
 
   const handleProfileUpdate = async (e) => {
@@ -151,74 +360,95 @@ const UserDashboard = () => {
     }
   };
 
-  const handleClearHistory = async () => {
-    if (!window.confirm('Are you sure you want to delete ALL chat history? This cannot be undone.')) return;
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/chat/history/clear', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setToastMsg('All History Cleared Successfully');
-        setShowToast(true);
-        localStorage.removeItem('currentChatId');
-        setTimeout(() => setShowToast(false), 3000);
-      } else {
-        throw new Error(data.message || 'Deletion failed');
-      }
-    } catch (err) {
-      setToastMsg(`Error: ${err.message}`);
-      setIsError(true);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    }
-  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'cases':
+        const filteredCases = myCases.filter(c => 
+          c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          c._id.includes(searchQuery)
+        );
+
         return (
-          <div className="animate-fade-in">
-            <h2 className="text-3xl font-bold font-display mb-8">My Cases</h2>
-            <div className="space-y-4">
-              {[
-                { id: 'C-892', title: 'Labor Law Consultation', date: 'Feb 12, 2026', status: 'Active', category: 'Employment' },
-                { id: 'C-885', title: 'Tenant Agreement Review', date: 'Feb 10, 2026', status: 'Resolved', category: 'Property' },
-                { id: 'C-871', title: 'Start-up IP Strategy', date: 'Feb 05, 2026', status: 'Archived', category: 'Corporate' }
-              ].map((c) => (
-                <div key={c.id} className="glass-card p-6 flex items-center justify-between border-white/5 hover:border-primary-500/20 transition-all group">
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center font-bold text-primary-500 text-xs shadow-inner">
-                      {c.category.charAt(0)}
+          <div className="animate-fade-in relative">
+            <div className="flex items-center justify-between mb-8">
+               <div>
+                  <h2 className="text-3xl font-bold font-display mb-2">My Cases</h2>
+                  <p className="text-gray-400 text-sm">Manage your legal consultation history.</p>
+               </div>
+               
+               {myCases.length > 0 && (
+                 <div className="flex items-center gap-4">
+                    <div className="relative">
+                       <input 
+                         type="text" 
+                         placeholder="Search cases..." 
+                         value={searchQuery}
+                         onChange={(e) => setSearchQuery(e.target.value)}
+                         className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 pl-10 text-xs font-bold text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 w-64 transition-all"
+                       />
+                       <svg className="w-4 h-4 text-gray-500 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-gray-200 group-hover:text-white transition-colors">{c.title}</h4>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{c.id}</span>
-                        <span className="text-gray-700 text-xs">•</span>
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{c.date}</span>
+                    <button 
+                      onClick={handleClearHistory}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      Clear All
+                    </button>
+                 </div>
+               )}
+            </div>
+
+            {loadingCases ? (
+              <div className="text-center py-12">
+                 <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Loading Records...</p>
+              </div>
+            ) : filteredCases.length === 0 ? (
+               <div className="bg-white/5 border border-dashed border-white/10 rounded-3xl p-12 text-center opacity-50">
+                  <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">{searchQuery ? 'No Matching Cases Found' : 'No Active Cases Found'}</p>
+                  {!searchQuery && <Link to="/ai-advisor" className="mt-4 inline-block text-xs font-bold text-primary-500 hover:text-primary-400 uppercase tracking-widest">Start a Consultation</Link>}
+               </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredCases.map((c) => (
+                  <div key={c._id} className="glass-card p-6 flex items-center justify-between border-white/5 hover:border-primary-500/20 transition-all group relative overflow-hidden">
+                    <div className="flex items-center gap-5 relative z-10 flex-1">
+                      <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center font-bold text-primary-500 text-xs shadow-inner shrink-0">
+                        {(c.category || 'G').charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Link to="/ai-advisor" onClick={() => localStorage.setItem('currentChatId', c._id)} className="font-bold text-gray-200 group-hover:text-white transition-colors truncate pr-4 block hover:underline underline-offset-4 decoration-primary-500/50">
+                          {c.title}
+                        </Link>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{c._id.slice(-6).toUpperCase()}</span>
+                          <span className="text-gray-700 text-xs">•</span>
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{new Date(c.createdAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
                     </div>
+                    
+                    <div className="flex items-center gap-6 relative z-10 pl-6 border-l border-white/5">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        (c.activeCase?.status || 'Open') === 'Open' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 text-gray-500 border border-white/5'
+                      }`}>
+                        {c.activeCase?.status || 'Active'}
+                      </span>
+                      
+                      <button 
+                        onClick={() => handleDeleteCase(c._id)}
+                        className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                        title="Delete Case"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                      c.status === 'Active' ? 'bg-primary-600/20 text-primary-400 border border-primary-500/20' : 'bg-white/5 text-gray-500 border border-white/5'
-                    }`}>
-                      {c.status}
-                    </span>
-                    <button className="p-2 text-gray-600 hover:text-white hover:bg-white/5 rounded-lg transition-all">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       case 'vault':
@@ -229,31 +459,57 @@ const UserDashboard = () => {
                 <h2 className="text-3xl font-bold font-display">Digital Legal Vault</h2>
                 <p className="text-gray-400 text-sm">Secure storage for your analyzed documents.</p>
               </div>
-              <button className="premium-button px-6 py-2.5 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                Upload Document
-              </button>
+              <label className={`premium-button px-6 py-2.5 flex items-center gap-2 cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                {uploading ? (
+                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                )}
+                {uploading ? 'Uploading...' : 'Upload Document'}
+                <input 
+                  type="file" 
+                  accept=".pdf,.doc,.docx" 
+                  className="hidden" 
+                  onChange={handleFileUpload}
+                />
+              </label>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { name: 'Rent_Agreement_Draft.pdf', size: '2.4 MB', type: 'PDF' },
-                { name: 'Notice_Reply_Police.docx', size: '1.1 MB', type: 'WORD' },
-                { name: 'Business_Contract_V2.pdf', size: '4.8 MB', type: 'PDF' }
-              ].map((file, i) => (
-                <div key={i} className="glass-card p-6 border-white/5 hover:border-primary-500/20 transition-all cursor-pointer group">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-10 h-10 bg-primary-600/10 rounded-lg flex items-center justify-center text-primary-500">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+
+            {documents.length === 0 ? (
+               <div className="bg-white/5 border border-dashed border-white/10 rounded-3xl p-12 text-center opacity-50">
+                  <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No Documents Stored</p>
+                  <p className="text-xs text-gray-600 mt-2">Upload PDF or Word documents to analyze and store them securely.</p>
+               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {documents.map((doc) => (
+                  <div key={doc._id} className="glass-card p-6 border-white/5 hover:border-primary-500/20 transition-all cursor-pointer group relative">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-10 h-10 bg-primary-600/10 rounded-lg flex items-center justify-center text-primary-500">
+                        {doc.mimeType.includes('pdf') ? (
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                        ) : (
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        )}
+                      </div>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDocumentDelete(doc._id); }}
+                        className="text-gray-600 hover:text-red-500 transition-colors p-1"
+                        title="Delete File"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
                     </div>
-                    <button className="text-gray-600 hover:text-red-500 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
+                    <div onClick={() => handleViewDocument(doc._id, doc.originalName)}>
+                      <p className="font-bold text-gray-200 group-hover:text-white truncate" title={doc.originalName}>{doc.originalName}</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                        {(doc.size / 1024 / 1024).toFixed(2)} MB • {new Date(doc.uploadDate).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <p className="font-bold text-gray-200 group-hover:text-white truncate">{file.name}</p>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">{file.size} • {file.type}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       case 'support':
@@ -500,6 +756,15 @@ const UserDashboard = () => {
   return (
     <div className="min-h-screen bg-surface-background font-sans text-white">
       <Navbar />
+      
+      <ConfirmationModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        isDanger={modalConfig.isDanger}
+      />
       
       {/* Toast Notification */}
       {showToast && (

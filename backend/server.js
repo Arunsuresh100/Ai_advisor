@@ -14,6 +14,7 @@ console.log('Connecting to:', process.env.MONGO_URI);
 const auth = require('./routes/auth');
 const chat = require('./routes/chat');
 const messages = require('./routes/messages');
+const documents = require('./routes/documents');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(cors());
 app.use('/api/auth', auth);
 app.use('/api/chat', chat);
 app.use('/api/messages', messages);
+app.use('/api/documents', documents);
 
 const PORT = process.env.PORT || 5000;
 
