@@ -151,6 +151,35 @@ const UserDashboard = () => {
     }
   };
 
+  const handleClearHistory = async () => {
+    if (!window.confirm('Are you sure you want to delete ALL chat history? This cannot be undone.')) return;
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/chat/history/clear', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToastMsg('All History Cleared Successfully');
+        setShowToast(true);
+        localStorage.removeItem('currentChatId');
+        setTimeout(() => setShowToast(false), 3000);
+      } else {
+        throw new Error(data.message || 'Deletion failed');
+      }
+    } catch (err) {
+      setToastMsg(`Error: ${err.message}`);
+      setIsError(true);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'cases':
@@ -442,6 +471,25 @@ const UserDashboard = () => {
                 <button type="submit" className="premium-button px-10 py-3 shadow-lg shadow-primary-600/20">Change Password</button>
               </div>
             </form>
+
+            <div className="h-px bg-white/5 w-full my-12"></div>
+
+            {/* Data Management Section */}
+            <div className="space-y-8">
+               <h4 className="text-sm font-bold text-white mb-6 uppercase tracking-widest">Data Management</h4>
+               <div className="p-6 glass-card rounded-3xl border-red-500/20 bg-red-500/5 flex items-center justify-between">
+                  <div>
+                     <h4 className="font-bold text-lg text-red-400 mb-1">Clear Chat History</h4>
+                     <p className="text-gray-500 text-sm">Permanently delete all your AI consultation records.</p>
+                  </div>
+                  <button 
+                    onClick={handleClearHistory}
+                    className="px-6 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                  >
+                    Delete All
+                  </button>
+               </div>
+            </div>
           </div>
         );
       default:
