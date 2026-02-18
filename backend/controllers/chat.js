@@ -10,23 +10,45 @@ exports.queryAdvisor = async (req, res, next) => {
     const { message, chatId } = req.body;
     console.log('AI Consultation Query:', message);
 
-    if (!message) {
-      return res.status(400).json({ success: false, message: 'Please provide a message' });
+    // 0. Auto-Create Chat if missing
+    let currentChatId = chatId;
+    let chat = null;
+    
+    if (!currentChatId) {
+      chat = await Chat.create({
+        user: req.user.id,
+        title: 'New Consultation',
+        messages: []
+      });
+      currentChatId = chat._id;
+    } else {
+      chat = await Chat.findById(currentChatId);
     }
 
     // 1. Retrieval Phase: Search database for relevant legal context
     // Improved for follow-ups: Recognize procedural questions and carry over context
     const isBriefFollowUp = message.length < 50 && (
       /section|punishment|charge|law|penalty/i.test(message) || 
-      /approach|handle|steps|do next|what to do|process/i.test(message)
+      /approach|handle|steps|do next|what to do|process|consequences|happens next/i.test(message)
     );
     let searchQuery = message;
+    let activeCaseContext = null;
 
-    if (isBriefFollowUp && chatId) {
-      const prevChat = await Chat.findById(chatId);
-      if (prevChat && prevChat.messages.length > 0) {
-        const lastUserMsg = prevChat.messages.slice().reverse().find(m => m.role === 'user');
-        if (lastUserMsg) searchQuery = `${lastUserMsg.text} ${message}`;
+    if (currentChatId) {
+      // Use the chat object we already fetched or created
+      if (chat) {
+         // Check for Active Case
+         if (chat.activeCase && chat.activeCase.status === 'Open') {
+            activeCaseContext = chat.activeCase;
+            // If checking for follow-up on an active case, trust the active case context primarily
+            if (isBriefFollowUp) {
+               searchQuery = `${activeCaseContext.subject} ${message}`;
+            }
+         } else if (chat.messages.length > 0 && isBriefFollowUp) {
+            // Fallback to last message if no formal active case
+            const lastUserMsg = chat.messages.slice().reverse().find(m => m.role === 'user');
+            if (lastUserMsg) searchQuery = `${lastUserMsg.text} ${message}`;
+         }
       }
     }
 
@@ -43,8 +65,8 @@ exports.queryAdvisor = async (req, res, next) => {
             .limit(4)
             .lean()
         : Promise.resolve([]),
-      chatId 
-        ? Chat.findById(chatId).select('messages').lean() 
+      currentChatId 
+        ? (chat ? Promise.resolve(chat) : Chat.findById(currentChatId).select('messages').lean())
         : Promise.resolve(null)
     ]);
 
@@ -59,15 +81,19 @@ exports.queryAdvisor = async (req, res, next) => {
     let aiResponse = "";
 
     // 2. Local Intent Filter (Saves Quota)
+    // BYPASS if there is an active case - serious context requires AI handling
+
+    
     const intentRules = [
       { pattern: /^(hello|hi|hey|greetings|namaste)/i, response: "Hello! I am your Law Advisor. How can I help you today?" },
       { pattern: /(i\s+)?hav[ea]?\s+(a\s+)?(legal\s+)?doubts?/i, response: "Ok, I am ready to help. Please tell me exactly what happened or what your specific legal doubt is so I can find the right laws for you." },
       { pattern: /who (are|is) (you|the advisor)/i, response: "I am your professional Law Advisor, here to guide you through legal procedures and documents." },
-      { pattern: /^(help|what can you do)/i, response: "I can analyze legal queries, explain IPC sections, and guide you on legal procedures for various cases." }
+      { pattern: /^(help|what can you do)/i, response: "I can analyze legal queries, explain BNS sections, and guide you on legal procedures for various cases." },
+      { pattern: /thank/i, response: "You're welcome! Feel free to ask if you have more questions." }
     ];
 
     const matchedRule = intentRules.find(r => r.pattern.test(cleanMsg));
-    if (matchedRule) {
+    if (matchedRule && !activeCaseContext) { // Only use local intent if NO active case
       aiResponse = matchedRule.response;
     } else {
       // 3. Final Response Generation
@@ -93,7 +119,7 @@ exports.queryAdvisor = async (req, res, next) => {
             : "Focus on Indian Statutes.";
 
           const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-          const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
           const prompt = `
             You are a Legal AI Assistant for the Indian Judicial System. 
@@ -110,19 +136,31 @@ exports.queryAdvisor = async (req, res, next) => {
             2. Need for a Lawyer - Emphasize professional legal representation.
             3. BNS Legal Classification. 
             
-            Maintain a professional, urgent, and cautious tone.
+            IMPORTANT PERSONA INSTRUCTIONS (EXPLAIN LIKE I'M 5):
+            1. SIMPLE LANGUAGE: You are a "Helpful Legal Guide", not a robot lawyer. Use plain English. Avoid legalese.
+            2. TONE: Be calm, reassuring, and clear. Do not be overly dramatic.
+            3. EXPLAIN CONCEPTS: If you use a legal term (e.g., "Culpable Homicide"), immediately explain it in simple words (e.g., "which means causing death but without the full intent of murder").
 
-            Expert Indian Legal Assistant. Be concise. Structure:
-            1. Problem: Short summary.
-            2. Analysis: Cite BNS Sections (NOT IPC). Explain WHY.
-            3. Steps: 3 bullet points.
-            4. Disclaimer (MANDATORY): DISCLAIMER: I am an AI, not a lawyer. Educational use only. Consult an advocate.
+            MANDATORY STRUCTURE (Keep Accuracy, Improve Clarity):
+            1. MEMORY RECALL: Check history. If they asked "What is the punishment?", answer for the crime they already confessed to.
+            2. LOGIC LOCK: Treat follow-ups as a continuous conversation.
+            3. VISUAL FLOW: Always show the path: [Incident] -> [Police Case (FIR)] -> [Investigation] -> [Court Trial] -> [Final Decision].
+            4. EFFICIENCY: Use Bullet points. precise and easy to read.
 
-            CONTEXT:
+            OUTPUT FORMAT:
+            - Header: Simple summary of the situation.
+            - The Law: Section 103 BNS (Murder) - Explain simply what it covers.
+            - The Process: The Visual Flowchart.
+            - Next Steps: 3 simple things to do (e.g., "Call a lawyer", "Don't speak until they arrive").
+
+            ACTIVE CASE CONTEXT:
+            ${activeCaseContext ? `[SUBJECT: ${activeCaseContext.subject}] [SEVERITY: ${activeCaseContext.severity}] - USER IS ASKING FOLLOW-UP.` : "Checking HISTORY for context..."}
+
+            CONTEXT (Laws):
             ${context}
 
-            HISTORY:
-            ${historyContext || "Start."}
+            HISTORY (Previous Conversation):
+            ${historyContext || "ERROR: No History Found."}
 
             QUERY: "${message}"
           `;
@@ -132,7 +170,11 @@ exports.queryAdvisor = async (req, res, next) => {
           aiResponse = result.response.text();
         } catch (aiErr) {
           console.error('AI Processing Failure:', aiErr.message);
-          aiResponse = "I encountered a high-load error. Please try again in a few seconds.";
+          if (aiErr.message.includes('429')) {
+            aiResponse = "The AI service is currently at maximum capacity (Quota Exceeded). Please wait a minute before trying again.";
+          } else {
+            aiResponse = "I encountered an error processing your request. Please try again in a few seconds.";
+          }
         }
       }
     }
@@ -141,33 +183,72 @@ exports.queryAdvisor = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: aiResponse,
+      chatId: currentChatId,
       sources: relevantLaws.map(l => l.section)
     });
 
     // background Task: Save and generate metadata without blocking the response
     setImmediate(async () => {
       try {
-        if (chatId) {
-          const chat = await Chat.findById(chatId);
-          if (chat && chat.user.toString() === req.user.id) {
-            chat.messages.push({ role: 'user', text: message });
-            chat.messages.push({ role: 'ai', text: aiResponse });
-            await chat.save();
+        if (currentChatId) {
+          // If we created the chat in memory, we need to save messages to it. 
+          // However, since setImmediate is async, it is safer to fetch again to avoid race conditions 
+          // or use the instance if it's still valid. 
+          const chatToUpdate = await Chat.findById(currentChatId);
+          if (chatToUpdate && chatToUpdate.user.toString() === req.user.id) {
+            chatToUpdate.messages.push({ role: 'user', text: message });
+            chatToUpdate.messages.push({ role: 'ai', text: aiResponse });
+            await chatToUpdate.save();
             
-            // Professional Metadata (Only on first exchange)
-            if (chat.messages.length === 2) {
-               try {
-                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-                 const metadataPrompt = `Analyze legal query and return JSON: {"title": "", "summary": "", "category": ""} for: "${message}"`;
-                 const metaResult = await model.generateContent(metadataPrompt);
-                 const metadata = JSON.parse(metaResult.response.text().replace(/```json|```/g, '').trim());
-                 chat.title = metadata.title || chat.title;
-                 chat.summary = metadata.summary || chat.summary;
-                 chat.category = metadata.category || chat.category;
-                 await chat.save();
-               } catch (e) { console.error('BG Meta Err:', e.message); }
-            }
+             // Professional Metadata & Active Case Analysis (Background)
+             // We do this for EVERY pertinent message if it might be a new case
+             try {
+                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                
+                const analysisPrompt = `
+                  Analyze the following user query and conversation to determine if a NEW legal case is being disclosed.
+                  Query: "${message}"
+                  Context: ${aiResponse.substring(0, 500)}
+                  
+                  Return ONLY JSON.
+                  If a specific legal incident (crime, dispute) is disclosed, fill "activeCase".
+                  If it's just general talk, leave "activeCase" null.
+                  
+                  Structure:
+                  {
+                    "title": "Short chat title",
+                    "summary": "One line summary",
+                    "category": "Civil/Criminal/etc",
+                    "activeCase": {
+                      "subject": "e.g. Murder, Theft",
+                      "description": "Short details",
+                      "severity": "High/Medium/Low"
+                    } (OR null)
+                  }
+                `;
+                
+                const metaResult = await model.generateContent(analysisPrompt);
+                const match = metaResult.response.text().match(/\{[\s\S]*\}/);
+                const jsonStr = match ? match[0] : "{}";
+                const metadata = JSON.parse(jsonStr);
+                
+                if (chatToUpdate.messages.length <= 2) {
+                   chatToUpdate.title = metadata.title || chatToUpdate.title;
+                   chatToUpdate.summary = metadata.summary || chatToUpdate.summary;
+                   chatToUpdate.category = metadata.category || chatToUpdate.category;
+                }
+                
+                // Update Active Case if detected
+                if (metadata.activeCase) {
+                   chatToUpdate.activeCase = {
+                      ...metadata.activeCase,
+                      status: 'Open'
+                   };
+                }
+                
+                await chatToUpdate.save();
+             } catch (e) { console.error('BG Analysis Err:', e.message); }
           }
         }
       } catch (err) { console.error('BG Persistence Err:', err.message); }
@@ -218,6 +299,40 @@ exports.getChatMessages = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Chat not found' });
     }
     res.status(200).json({ success: true, data: chat.messages });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// @desc    Delete Single Chat
+// @route   DELETE /api/chat/:id
+// @access  Private
+exports.deleteChat = async (req, res) => {
+  try {
+    const chat = await Chat.findById(req.params.id);
+
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Chat not found' });
+    }
+
+    if (chat.user.toString() !== req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
+    await chat.deleteOne();
+    res.status(200).json({ success: true, message: 'Chat removed', chatId: req.params.id });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// @desc    Clear All Chat History
+// @route   DELETE /api/chat/history/clear
+// @access  Private
+exports.clearChatHistory = async (req, res) => {
+  try {
+    await Chat.deleteMany({ user: req.user.id });
+    res.status(200).json({ success: true, message: 'All history cleared' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

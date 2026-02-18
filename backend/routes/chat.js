@@ -12,9 +12,11 @@ router.use(protect);
 router.post('/query', queryAdvisor);
 
 // History and Session Management
-const { getChatHistory, createNewChat, getChatMessages } = require('../controllers/chat');
+const { getChatHistory, createNewChat, getChatMessages, deleteChat, clearChatHistory } = require('../controllers/chat');
 router.get('/history', getChatHistory);
 router.post('/new', createNewChat);
 router.get('/:id', getChatMessages);
+router.delete('/history/clear', clearChatHistory);
+router.delete('/:id', deleteChat);
 
 module.exports = router;

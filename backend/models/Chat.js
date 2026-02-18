@@ -43,6 +43,12 @@ const ChatSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  activeCase: {
+    subject: String,
+    description: String,
+    severity: { type: String, enum: ['High', 'Medium', 'Low'] },
+    status: { type: String, enum: ['Open', 'Resolved'], default: 'Open' }
   }
 });
 
