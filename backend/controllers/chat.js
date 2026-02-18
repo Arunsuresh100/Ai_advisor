@@ -102,30 +102,40 @@ exports.queryAdvisor = async (req, res, next) => {
 
           const context = relevantLaws.length > 0 
             ? relevantLaws.map(l => `Section ${l.section} (${l.title}): ${l.description}`).join("\n\n")
-            : "No specific local laws found. Use general legal knowledge.";
+            : "No specific local laws found. Use general legal knowledge focus on Indian Statutes.";
 
           const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
           const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
           const prompt = `
-            You are a Professional Law Advisor (ChatGPT-like persona).
-            
+            You are an AI Legal Assistant specializing in Indian Law. You are a knowledgeable legal guide, NOT a judge and NOT the user's attorney.
+
+            ### CORE GUIDELINES & GUARDRAILS:
+            1. **Civil vs. Criminal Distinction (CRITICAL)**: 
+               - DO NOT cite Criminal Law (IPC/BNS) for business disputes, late deliveries, or breach of contract unless fraud, theft, or forgery is explicitly mentioned.
+               - For unpaid loans or service delays, prioritize Civil Remedies (Indian Contract Act, Consumer Protection Act).
+            2. **Avoid Assumptions**: Use neutral language. Do not assume guilt.
+            3. **Intent (Mens Rea)**: Explain that for crimes like Theft, "Dishonest Intention" must exist.
+            4. **No Absolutes**: Use probabilistic language like "You may be entitled to..." or "This is likely a violation of...". Never say "You will win".
+            5. **Correction Rule**: If user says "Burglary", use the legal term "House-breaking (IPC Section 445)".
+
             HISTORY:
             ---
             ${historyContext || "Start of conversation."}
             ---
 
-            CRITICAL RULES:
-            1. **Conditional Legal Info**: 
-               - If the user has NOT provided details of a specific case or scenario, DO NOT provide "Legal Consequences" or "How to Approach It" sections. 
-               - Instead, just ask them politely to share the details of their doubt or problem.
-            2. **Explicit Sections**: If answering a specific case, you MUST mention the specific **Section Number** and **Law Name**.
-            3. **Simple Words**: Use Grade 6 English.
-            4. **STRUCTURE**:
-               - **# Problem Explanation**: (Friendly summary. Skip if history is present.)
-               - ### Legal Consequences: (Mandatory Section/Law/Penalty).
-               - ### How to Approach It: (Simple steps).
-            5. **CONVERSATIONAL HOOK**: End every response with a helpful question.
+            STRUCTURE (MANDATORY HEADERS):
+            **1. Problem Explanation**
+            (Brief summary of issue in simple English)
+
+            **2. Legal Analysis & Sections**
+            (Cite specific laws like IPC, Indian Contract Act. Explain WHY they apply to these facts. Use Grade 6 English.)
+
+            **3. Actionable Steps**
+            (3-4 bullet points on next steps like 'Send Legal Notice' or 'Gather evidence'.)
+
+            **4. Disclaimer**
+            (You MUST end with the EXACT disclaimer text below.)
 
             QUERY: "${message}"
 
@@ -133,40 +143,38 @@ exports.queryAdvisor = async (req, res, next) => {
             ---
             ${context}
             ---
+
+            MANDATORY DISCLAIMER:
+            Disclaimer: I am an AI, not a lawyer. This information is for educational purposes only and does not constitute legal advice. Please consult a qualified advocate for your specific case.
           `;
 
-          console.log('Generating structured response with Resilience Layer...');
+          console.log('Generating advanced structured response...');
           const result = await callWithRetry(() => model.generateContent(prompt));
           aiResponse = result.response.text();
         } catch (aiErr) {
-          console.error('Final Resilience Failure:', aiErr.message);
+          console.error('AI Processing Failure:', aiErr.message);
           
           if (aiErr.message.includes('429')) {
-            // Empathetic Expert Local Failback logic
-            const hasSeriousCrime = keywords.some(k => ['kill', 'killed', 'murder', 'stole', 'stolen', 'fraud', 'rape', 'assault'].includes(k));
+            // Updated Local Failback matching new advanced structure
             const isFollowUp = historyContext && historyContext.length > 0;
+            const disclaimerText = "Disclaimer: I am an AI, not a lawyer. This information is for educational purposes only and does not constitute legal advice. Please consult a qualified advocate for your specific case.";
+            const disclaimer = `\n\n**4. Disclaimer**\n*${disclaimerText}*`;
 
             if (isFollowUp) {
-               aiResponse = `# ⚖️ Law Advisor (Follow-up Assistance)\n\nI understand. Let's look closer at your situation using our local records.\n\n---\n\n`;
+               aiResponse = `**1. Problem Explanation**\nI understand we are continuing our discussion. Let's look at the legal steps for your situation.\n\n`;
             } else {
-               aiResponse = `# ⚖️ Law Advisor (Professional Guidance)\n\nI am your Law Advisor. I understand this is a very serious and concerning situation for you. Even though my main AI core is busy, I have retrieved the most important information from our local legal database to help you immediately.\n\n---\n\n`;
+               aiResponse = `**1. Problem Explanation**\nI understand you are facing a legal concern. Even though my main AI core is busy, I have retrieved the most important information from our records to help you.\n\n`;
             }
             
             if (relevantLaws.length > 0) {
-              if (hasSeriousCrime && !isFollowUp) {
-                aiResponse += `### # Regarding the Incident\nDealing with matters like this is the most serious thing under the law. It affects people's lives and property in a major way. I am here to guide you through the legal consequences step by step.\n\n`;
-              } else if (!isFollowUp) {
-                aiResponse += `### # Simple Explanation\nI understand your doubt. Based on our built-in records, here is how the law works for your situation in very simple words.\n\n`;
-              }
-
-              aiResponse += `### # Legal Consequences (Sections)\n`;
+              aiResponse += `**2. Legal Analysis & Sections**\nBased on your query, the following laws may apply:\n`;
               relevantLaws.forEach(law => {
-                aiResponse += `**Section ${law.section}: ${law.title}**\nThis law is used when ${law.description.substring(0, 150).toLowerCase()}... The punishment for this can be very serious.\n\n`;
+                aiResponse += `- **Section ${law.section}: ${law.title}**: This law typically covers ${law.description.substring(0, 100).toLowerCase()}...\n`;
               });
-
-              aiResponse += `### # How to Handle This\n1. **Remain Calm**: Take a deep breath. We will follow the law to solve this.\n2. **Speak to Authority**: You should visit the nearest Police Station or your Lawyer as soon as possible.\n3. **Do Not Hide Facts**: Be completely honest when reporting what happened.\n\n**Lawyer's Question**: I am here to support you. Would you like me to explain exactly what happened next at the police station etc?`;
+              aiResponse += `\n**3. Actionable Steps**\n- **Remain Calm**: Legal matters take time.\n- **Consult a Professional**: Speak to a qualified advocate.\n- **Document Everything**: Keep records of all interactions.`;
+              aiResponse += disclaimer;
             } else {
-              aiResponse += `I'm sorry, I couldn't find a direct match in my local law records for those specific words. \n\n**Could you please tell me more details about what happened so I can try searching again?**`;
+              aiResponse = `**1. Problem Explanation**\nI couldn't find a direct match in my local law records for those specific words.\n\n**2. Legal Analysis & Sections**\nPlease provide more details about the situation (e.g., is it about a contract, a police matter, or a property dispute?) so I can assist better.\n\n**3. Actionable Steps**\n- Rephrase your query.\n- Wait for the AI core to recover.\n- Consult a lawyer if urgent.` + disclaimer;
             }
           } else {
             aiResponse = "I encountered an internal error. Please try again later.";
