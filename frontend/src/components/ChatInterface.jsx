@@ -161,6 +161,8 @@ const ChatInterface = () => {
           text: data.data, 
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
         }]);
+        // Refresh history to catch AI-generated titles
+        fetchHistory();
       } else {
         if (response.status === 401) {
           localStorage.removeItem('token');
@@ -260,7 +262,6 @@ const ChatInterface = () => {
           })())}
         </div>
 
-        {/* Removed Upgrade to Pro Section */}
         <div className="relative z-10 pt-4 border-t border-white/5">
            <div className="flex items-center gap-4 px-4 py-3 rounded-2xl bg-white/5 border border-white/5">
               <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center">

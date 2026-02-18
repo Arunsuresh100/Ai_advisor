@@ -186,11 +186,17 @@ exports.queryAdvisor = async (req, res, next) => {
     // 5. Persistence: Save to Chat Session
     if (chatId) {
       const chat = await Chat.findById(chatId);
+      if (chat && chat.user.toString() === req.user.id) {
+        chat.messages.push({ role: 'user', text: message });
+        chat.messages.push({ role: 'ai', text: aiResponse });
         await chat.save();
         
         // Semantic History Enhancement: Auto-generate Title, Category, and Summary if this is the start
         if (chat.messages.length === 2) {
            try {
+             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+             const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
              const metadataPrompt = `
                Analyze this legal query and provide a professional metadata object.
                QUERY: "${chat.messages[0].text}"
