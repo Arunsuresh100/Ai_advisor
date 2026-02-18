@@ -46,4 +46,7 @@ const ChatSchema = new mongoose.Schema({
   }
 });
 
+// Indexing for faster history retrieval
+ChatSchema.index({ user: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Chat', ChatSchema);

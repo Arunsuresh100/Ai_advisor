@@ -34,30 +34,29 @@ exports.queryAdvisor = async (req, res, next) => {
     const stopWords = ['i', 'me', 'my', 'the', 'a', 'an', 'someone', 'somebody', 'who', 'how', 'what', 'where', 'when', 'is', 'am', 'are', 'was', 'were', 'to', 'for', 'with', 'in', 'on', 'at'];
     const keywords = searchQuery.toLowerCase().split(/\s+/).filter(word => !stopWords.includes(word) && word.length > 2);
 
-    let searchConditions = keywords.map(kw => ({
-      $or: [
-        { title: { $regex: kw, $options: 'i' } },
-        { description: { $regex: kw, $options: 'i' } },
-        { keywords: { $in: [new RegExp(kw, 'i')] } }
-      ]
-    }));
+    // Optimized Search: Use Text Index for speed if keywords exist
+    // 1. Parallel Retrieval Phase: Law & History
+    const [relevantLaws, prevChat] = await Promise.all([
+      keywords.length > 0 
+        ? Law.find({ $text: { $search: keywords.join(' ') } }, { score: { $meta: "textScore" } })
+            .sort({ score: { $meta: "textScore" } })
+            .limit(4)
+            .lean()
+        : Promise.resolve([]),
+      chatId 
+        ? Chat.findById(chatId).select('messages').lean() 
+        : Promise.resolve(null)
+    ]);
 
-    let relevantLaws = [];
-    if (searchConditions.length > 0) {
-      relevantLaws = await Law.find({ $or: searchConditions }).limit(5);
-    }
-    
-    // Recovery: If zero results found for a follow-up, try searching with ONLY previous context keywords
-    if (relevantLaws.length === 0 && isBriefFollowUp && searchQuery !== message) {
-       const backupKeywords = searchQuery.split(' ')[0].toLowerCase().split(/\s+/).filter(word => !stopWords.includes(word) && word.length > 2);
-       if (backupKeywords.length > 0) {
-          relevantLaws = await Law.find({ 
-            $or: backupKeywords.map(kw => ({ title: { $regex: kw, $options: 'i' } })) 
-          }).limit(5);
-       }
+    let historyContext = "";
+    if (prevChat) {
+      historyContext = prevChat.messages.slice(-4)
+        .map(m => `${m.role.toUpperCase()}: ${m.text.substring(0, 300)}`)
+        .join("\n");
     }
 
     const cleanMsg = message.trim();
+    let aiResponse = "";
 
     // 2. Local Intent Filter (Saves Quota)
     const intentRules = [
@@ -71,23 +70,12 @@ exports.queryAdvisor = async (req, res, next) => {
     if (matchedRule) {
       aiResponse = matchedRule.response;
     } else {
-      // 3. Contextual History for AI (Principal Mode)
-      let historyContext = "";
-      if (chatId) {
-        const chat = await Chat.findById(chatId);
-        if (chat) {
-          historyContext = chat.messages.slice(-6)
-            .map(m => `${m.role.toUpperCase()}: ${m.text}`)
-            .join("\n");
-        }
-      }
-
-      // 4. Final Response Generation
+      // 3. Final Response Generation
       if (!process.env.GEMINI_API_KEY) {
         aiResponse = "Environment error: Missing Gemini API Key.";
       } else {
         try {
-          const callWithRetry = async (fn, maxRetries = 2, baseDelay = 2000) => {
+          const callWithRetry = async (fn, maxRetries = 1, baseDelay = 500) => {
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
               try { return await fn(); } 
               catch (err) {
@@ -101,131 +89,88 @@ exports.queryAdvisor = async (req, res, next) => {
           };
 
           const context = relevantLaws.length > 0 
-            ? relevantLaws.map(l => `Section ${l.section} (${l.title}): ${l.description}`).join("\n\n")
-            : "No specific local laws found. Use general legal knowledge focus on Indian Statutes.";
+            ? relevantLaws.map(l => `Sec ${l.section}: ${l.title} - ${l.description}`).join("\n\n")
+            : "Focus on Indian Statutes.";
 
           const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
           const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
           const prompt = `
-            You are an AI Legal Assistant specializing in Indian Law. You are a knowledgeable legal guide, NOT a judge and NOT the user's attorney.
+            You are a Legal AI Assistant for the Indian Judicial System. 
+            STRICT REQUIREMENT: As of 2026, the Indian Penal Code (IPC) has been replaced by the Bharatiya Nyaya Sanhita (BNS). You must never quote IPC sections unless specifically asked for historical context.
 
-            ### CORE GUIDELINES & GUARDRAILS:
-            1. **Civil vs. Criminal Distinction (CRITICAL)**: 
-               - DO NOT cite Criminal Law (IPC/BNS) for business disputes, late deliveries, or breach of contract unless fraud, theft, or forgery is explicitly mentioned.
-               - For unpaid loans or service delays, prioritize Civil Remedies (Indian Contract Act, Consumer Protection Act).
-            2. **Avoid Assumptions**: Use neutral language. Do not assume guilt.
-            3. **Intent (Mens Rea)**: Explain that for crimes like Theft, "Dishonest Intention" must exist.
-            4. **No Absolutes**: Use probabilistic language like "You may be entitled to..." or "This is likely a violation of...". Never say "You will win".
-            5. **Correction Rule**: If user says "Burglary", use the legal term "House-breaking (IPC Section 445)".
+            Update your mapping for 'Offenses Against the Human Body' as follows:
+            - Replace Section 299/300 IPC (Culpable Homicide/Murder) with Section 100/101 BNS.
+            - Replace Section 302 IPC (Punishment for Murder) with Section 103 BNS.
+            - Replace Section 304 IPC (Punishment for Culpable Homicide) with Section 105 BNS.
+            - Replace Section 96-106 IPC (Private Defense) with Sections 34-44 BNS.
+
+            When a user discloses a serious crime, prioritize: 
+            1. Right to Silence (Art 20(3)) - Inform user they are not bound to incriminate themselves.
+            2. Need for a Lawyer - Emphasize professional legal representation.
+            3. BNS Legal Classification. 
+            
+            Maintain a professional, urgent, and cautious tone.
+
+            Expert Indian Legal Assistant. Be concise. Structure:
+            1. Problem: Short summary.
+            2. Analysis: Cite BNS Sections (NOT IPC). Explain WHY.
+            3. Steps: 3 bullet points.
+            4. Disclaimer (MANDATORY): DISCLAIMER: I am an AI, not a lawyer. Educational use only. Consult an advocate.
+
+            CONTEXT:
+            ${context}
 
             HISTORY:
-            ---
-            ${historyContext || "Start of conversation."}
-            ---
-
-            STRUCTURE (MANDATORY HEADERS):
-            **1. Problem Explanation**
-            (Brief summary of issue in simple English)
-
-            **2. Legal Analysis & Sections**
-            (Cite specific laws like IPC, Indian Contract Act. Explain WHY they apply to these facts. Use Grade 6 English.)
-
-            **3. Actionable Steps**
-            (3-4 bullet points on next steps like 'Send Legal Notice' or 'Gather evidence'.)
-
-            **4. Disclaimer**
-            (You MUST end with the EXACT disclaimer text below.)
+            ${historyContext || "Start."}
 
             QUERY: "${message}"
-
-            LEGAL CONTEXT:
-            ---
-            ${context}
-            ---
-
-            MANDATORY DISCLAIMER:
-            Disclaimer: I am an AI, not a lawyer. This information is for educational purposes only and does not constitute legal advice. Please consult a qualified advocate for your specific case.
           `;
 
-          console.log('Generating advanced structured response...');
+          console.log('Generating ultra-fast structured response...');
           const result = await callWithRetry(() => model.generateContent(prompt));
           aiResponse = result.response.text();
         } catch (aiErr) {
           console.error('AI Processing Failure:', aiErr.message);
-          
-          if (aiErr.message.includes('429')) {
-            // Updated Local Failback matching new advanced structure
-            const isFollowUp = historyContext && historyContext.length > 0;
-            const disclaimerText = "Disclaimer: I am an AI, not a lawyer. This information is for educational purposes only and does not constitute legal advice. Please consult a qualified advocate for your specific case.";
-            const disclaimer = `\n\n**4. Disclaimer**\n*${disclaimerText}*`;
-
-            if (isFollowUp) {
-               aiResponse = `**1. Problem Explanation**\nI understand we are continuing our discussion. Let's look at the legal steps for your situation.\n\n`;
-            } else {
-               aiResponse = `**1. Problem Explanation**\nI understand you are facing a legal concern. Even though my main AI core is busy, I have retrieved the most important information from our records to help you.\n\n`;
-            }
-            
-            if (relevantLaws.length > 0) {
-              aiResponse += `**2. Legal Analysis & Sections**\nBased on your query, the following laws may apply:\n`;
-              relevantLaws.forEach(law => {
-                aiResponse += `- **Section ${law.section}: ${law.title}**: This law typically covers ${law.description.substring(0, 100).toLowerCase()}...\n`;
-              });
-              aiResponse += `\n**3. Actionable Steps**\n- **Remain Calm**: Legal matters take time.\n- **Consult a Professional**: Speak to a qualified advocate.\n- **Document Everything**: Keep records of all interactions.`;
-              aiResponse += disclaimer;
-            } else {
-              aiResponse = `**1. Problem Explanation**\nI couldn't find a direct match in my local law records for those specific words.\n\n**2. Legal Analysis & Sections**\nPlease provide more details about the situation (e.g., is it about a contract, a police matter, or a property dispute?) so I can assist better.\n\n**3. Actionable Steps**\n- Rephrase your query.\n- Wait for the AI core to recover.\n- Consult a lawyer if urgent.` + disclaimer;
-            }
-          } else {
-            aiResponse = "I encountered an internal error. Please try again later.";
-          }
+          aiResponse = "I encountered a high-load error. Please try again in a few seconds.";
         }
       }
     }
 
-    // 5. Persistence: Save to Chat Session
-    if (chatId) {
-      const chat = await Chat.findById(chatId);
-      if (chat && chat.user.toString() === req.user.id) {
-        chat.messages.push({ role: 'user', text: message });
-        chat.messages.push({ role: 'ai', text: aiResponse });
-        await chat.save();
-        
-        // Semantic History Enhancement: Auto-generate Title, Category, and Summary if this is the start
-        if (chat.messages.length === 2) {
-           try {
-             const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-             const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-
-             const metadataPrompt = `
-               Analyze this legal query and provide a professional metadata object.
-               QUERY: "${chat.messages[0].text}"
-               
-               JSON FORMAT ONLY:
-               {
-                 "title": "Short professional title (max 5 words, e.g. 'IPC 300 Murder Advice')",
-                 "summary": "One sentence summary of the core issue.",
-                 "category": "Pick ONE exactly: Civil, Criminal, Property, Cyber, Consumer, General"
-               }
-             `;
-             const metaResult = await model.generateContent(metadataPrompt);
-             const metadata = JSON.parse(metaResult.response.text().replace(/```json|```/g, '').trim());
-             
-             chat.title = metadata.title || chat.title;
-             chat.summary = metadata.summary || chat.summary;
-             chat.category = metadata.category || chat.category;
-             await chat.save();
-           } catch (metaErr) {
-             console.error('Metadata generation failed:', metaErr.message);
-           }
-        }
-      }
-    }
-
+    // 5. Fire-and-Forget Persistence: Respond immediately, save in background
     res.status(200).json({
       success: true,
       data: aiResponse,
       sources: relevantLaws.map(l => l.section)
+    });
+
+    // background Task: Save and generate metadata without blocking the response
+    setImmediate(async () => {
+      try {
+        if (chatId) {
+          const chat = await Chat.findById(chatId);
+          if (chat && chat.user.toString() === req.user.id) {
+            chat.messages.push({ role: 'user', text: message });
+            chat.messages.push({ role: 'ai', text: aiResponse });
+            await chat.save();
+            
+            // Professional Metadata (Only on first exchange)
+            if (chat.messages.length === 2) {
+               try {
+                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+                 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+                 const metadataPrompt = `Analyze legal query and return JSON: {"title": "", "summary": "", "category": ""} for: "${message}"`;
+                 const metaResult = await model.generateContent(metadataPrompt);
+                 const metadata = JSON.parse(metaResult.response.text().replace(/```json|```/g, '').trim());
+                 chat.title = metadata.title || chat.title;
+                 chat.summary = metadata.summary || chat.summary;
+                 chat.category = metadata.category || chat.category;
+                 await chat.save();
+               } catch (e) { console.error('BG Meta Err:', e.message); }
+            }
+          }
+        }
+      } catch (err) { console.error('BG Persistence Err:', err.message); }
     });
 
   } catch (err) {

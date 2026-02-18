@@ -140,10 +140,6 @@ const ChatInterface = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Simulate RAG stages for UI feedback
-      setTimeout(() => setLoadingStage('Analyzing IPC Sections'), 1500);
-      setTimeout(() => setLoadingStage('Synthesizing Legal Advice'), 3000);
-      // In a real scenario, we'd use FormData for attachments
       const response = await fetch('http://localhost:5000/api/chat/query', {
         method: 'POST',
         headers: {
@@ -204,25 +200,18 @@ const ChatInterface = () => {
             <div className="text-center py-10 opacity-30">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No History Yet</p>
             </div>
-          ) : (() => {
-            const groups = {
-              'Today': [],
-              'Yesterday': [],
-              'Earlier': []
-            };
-
-            history.forEach(chat => {
-              const date = new Date(chat.createdAt);
-              const today = new Date();
-              const diffTime = Math.abs(today - date);
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-              if (diffDays <= 1) groups['Today'].push(chat);
-              else if (diffDays === 2) groups['Yesterday'].push(chat);
-              else groups['Earlier'].push(chat);
-            });
-
-            return Object.entries(groups).map(([label, chats]) => chats.length > 0 && (
+          ) : (
+            Object.entries(
+              history.reduce((groups, chat) => {
+                const date = new Date(chat.createdAt);
+                const today = new Date();
+                const diffDays = Math.ceil(Math.abs(today - date) / (1000 * 60 * 60 * 24));
+                const label = diffDays <= 1 ? 'Today' : diffDays === 2 ? 'Yesterday' : 'Earlier';
+                if (!groups[label]) groups[label] = [];
+                groups[label].push(chat);
+                return groups;
+              }, { 'Today': [], 'Yesterday': [], 'Earlier': [] })
+            ).map(([label, chats]) => chats.length > 0 && (
               <div key={label} className="space-y-4">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 ml-2">{label}</p>
                 <div className="space-y-3">
@@ -258,8 +247,8 @@ const ChatInterface = () => {
                   ))}
                 </div>
               </div>
-            ));
-          })())}
+            ))
+          )}
         </div>
 
         <div className="relative z-10 pt-4 border-t border-white/5">
