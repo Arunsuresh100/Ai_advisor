@@ -197,25 +197,67 @@ const ChatInterface = () => {
           </button>
         </div>
         
-        <div className="flex-1 space-y-3 overflow-y-auto scrollbar-hide relative z-10">
+        <div className="flex-1 space-y-8 overflow-y-auto scrollbar-hide relative z-10 px-1">
           {history.length === 0 ? (
             <div className="text-center py-10 opacity-30">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No History Yet</p>
             </div>
-          ) : (
-            history.map((chat) => (
-              <button 
-                key={chat._id} 
-                onClick={() => loadChat(chat._id)}
-                className={`w-full group text-left p-4 rounded-2xl text-xs font-bold transition-all border ${currentChatId === chat._id ? 'bg-primary-600/10 text-primary-400 border-primary-600/20 shadow-lg' : 'text-gray-500 border-transparent hover:bg-white/5 hover:text-white'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full ${currentChatId === chat._id ? 'bg-primary-500 animate-pulse' : 'bg-gray-700'}`}></div>
-                  <span className="truncate">{chat.title}</span>
+          ) : (() => {
+            const groups = {
+              'Today': [],
+              'Yesterday': [],
+              'Earlier': []
+            };
+
+            history.forEach(chat => {
+              const date = new Date(chat.createdAt);
+              const today = new Date();
+              const diffTime = Math.abs(today - date);
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+              if (diffDays <= 1) groups['Today'].push(chat);
+              else if (diffDays === 2) groups['Yesterday'].push(chat);
+              else groups['Earlier'].push(chat);
+            });
+
+            return Object.entries(groups).map(([label, chats]) => chats.length > 0 && (
+              <div key={label} className="space-y-4">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 ml-2">{label}</p>
+                <div className="space-y-3">
+                  {chats.map((chat) => (
+                    <button 
+                      key={chat._id} 
+                      onClick={() => loadChat(chat._id)}
+                      className={`w-full group text-left p-4 rounded-2xl text-xs font-bold transition-all border ${currentChatId === chat._id ? 'bg-primary-600/10 text-primary-400 border-primary-600/20 shadow-lg' : 'text-gray-500 border-transparent hover:bg-white/5 hover:text-white'}`}
+                    >
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 truncate">
+                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentChatId === chat._id ? 'bg-primary-500 animate-pulse' : 'bg-gray-700'}`}></div>
+                            <span className="truncate">{chat.title}</span>
+                          </div>
+                          {chat.category && (
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-md border shrink-0 ${
+                              chat.category === 'Criminal' ? 'border-red-500/30 text-red-500 bg-red-500/5' :
+                              chat.category === 'Civil' ? 'border-blue-500/30 text-blue-500 bg-blue-500/5' :
+                              'border-primary-500/30 text-primary-500 bg-primary-500/5'
+                            }`}>
+                              {chat.category}
+                            </span>
+                          )}
+                        </div>
+                        {chat.summary && chat.summary !== 'Consultation awaiting professional summary.' && (
+                          <p className="text-[10px] text-gray-500 font-medium leading-relaxed line-clamp-2 pl-3.5 group-hover:text-gray-400 transition-colors">
+                            {chat.summary}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))
-          )}
+              </div>
+            ));
+          })())}
         </div>
 
         {/* Removed Upgrade to Pro Section */}

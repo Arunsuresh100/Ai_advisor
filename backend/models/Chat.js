@@ -11,6 +11,17 @@ const ChatSchema = new mongoose.Schema({
     required: [true, 'Please add a title for the chat'],
     trim: true
   },
+  summary: {
+    type: String,
+    trim: true,
+    default: 'Consultation awaiting professional summary.'
+  },
+  category: {
+    type: String,
+    trim: true,
+    enum: ['Civil', 'Criminal', 'Property', 'Cyber', 'Consumer', 'General'],
+    default: 'General'
+  },
   messages: [
     {
       role: {

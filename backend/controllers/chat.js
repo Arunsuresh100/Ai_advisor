@@ -186,14 +186,33 @@ exports.queryAdvisor = async (req, res, next) => {
     // 5. Persistence: Save to Chat Session
     if (chatId) {
       const chat = await Chat.findById(chatId);
-      if (chat && chat.user.toString() === req.user.id) {
-        chat.messages.push({ role: 'user', text: message });
-        chat.messages.push({ role: 'ai', text: aiResponse });
-        // Set the chat title if it's the first message
-        if (chat.messages.length === 2 && chat.title === 'New Legal Consultation') {
-          chat.title = message.substring(0, 30) + (message.length > 30 ? '...' : '');
-        }
         await chat.save();
+        
+        // Semantic History Enhancement: Auto-generate Title, Category, and Summary if this is the start
+        if (chat.messages.length === 2) {
+           try {
+             const metadataPrompt = `
+               Analyze this legal query and provide a professional metadata object.
+               QUERY: "${chat.messages[0].text}"
+               
+               JSON FORMAT ONLY:
+               {
+                 "title": "Short professional title (max 5 words, e.g. 'IPC 300 Murder Advice')",
+                 "summary": "One sentence summary of the core issue.",
+                 "category": "Pick ONE exactly: Civil, Criminal, Property, Cyber, Consumer, General"
+               }
+             `;
+             const metaResult = await model.generateContent(metadataPrompt);
+             const metadata = JSON.parse(metaResult.response.text().replace(/```json|```/g, '').trim());
+             
+             chat.title = metadata.title || chat.title;
+             chat.summary = metadata.summary || chat.summary;
+             chat.category = metadata.category || chat.category;
+             await chat.save();
+           } catch (metaErr) {
+             console.error('Metadata generation failed:', metaErr.message);
+           }
+        }
       }
     }
 
@@ -212,7 +231,9 @@ exports.queryAdvisor = async (req, res, next) => {
 // @access  Private
 exports.getChatHistory = async (req, res) => {
   try {
-    const history = await Chat.find({ user: req.user.id }).select('title createdAt').sort('-createdAt');
+    const history = await Chat.find({ user: req.user.id })
+      .select('title summary category createdAt')
+      .sort('-createdAt');
     res.status(200).json({ success: true, data: history });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
