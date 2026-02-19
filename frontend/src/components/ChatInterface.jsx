@@ -76,9 +76,20 @@ const ChatInterface = () => {
         setMessages(data.data);
         setCurrentChatId(id);
         localStorage.setItem('currentChatId', id);
+      } else {
+        // If chat unavailable/unauthorized, clear it
+        setCurrentChatId(null);
+        localStorage.removeItem('currentChatId');
+        setMessages([{ 
+          role: 'ai', 
+          text: 'Hello! I am your Law Advisor. How can I assist you with legal queries today?', 
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+        }]);
       }
     } catch (err) {
       console.error('Failed to load chat:', err);
+      setCurrentChatId(null);
+      localStorage.removeItem('currentChatId');
     }
   };
 
@@ -166,6 +177,8 @@ const ChatInterface = () => {
 
         // Refresh history to catch AI-generated titles
         fetchHistory();
+        // Double-check fetch after 5 seconds to catch background title generation
+        setTimeout(() => fetchHistory(), 5000);
       } else {
         if (response.status === 401) {
           localStorage.removeItem('token');

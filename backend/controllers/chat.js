@@ -8,7 +8,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 exports.queryAdvisor = async (req, res, next) => {
   try {
     const { message, chatId } = req.body;
-    console.log('AI Consultation Query:', message);
+    console.log(`[${new Date().toISOString()}] Incoming Query: "${message.substring(0, 50)}..." | ChatID: ${chatId}`);
 
     // 0. Auto-Create Chat if missing
     let currentChatId = chatId;
@@ -23,6 +23,20 @@ exports.queryAdvisor = async (req, res, next) => {
       currentChatId = chat._id;
     } else {
       chat = await Chat.findById(currentChatId);
+      
+      // Ownership Check: If chat exists but doesn't belong to user, treat as new chat
+      if (chat && chat.user.toString() !== req.user.id) {
+         console.warn(`Unauthorized chat access attempt by user ${req.user.id} on chat ${currentChatId}`);
+         currentChatId = null;
+         chat = null;
+         // Create new chat instead
+         chat = await Chat.create({
+            user: req.user.id,
+            title: 'New Consultation',
+            messages: []
+         });
+         currentChatId = chat._id;
+      }
     }
 
     // 1. Retrieval Phase: Search database for relevant legal context
@@ -80,178 +94,165 @@ exports.queryAdvisor = async (req, res, next) => {
     const cleanMsg = message.trim();
     let aiResponse = "";
 
-    // 2. Local Intent Filter (Saves Quota)
-    // BYPASS if there is an active case - serious context requires AI handling
-
-    
-    const intentRules = [
-      { pattern: /^(hello|hi|hey|greetings|namaste)/i, response: "Hello! I am your Law Advisor. How can I help you today?" },
-      { pattern: /(i\s+)?hav[ea]?\s+(a\s+)?(legal\s+)?doubts?/i, response: "Ok, I am ready to help. Please tell me exactly what happened or what your specific legal doubt is so I can find the right laws for you." },
-      { pattern: /who (are|is) (you|the advisor)/i, response: "I am your professional Law Advisor, here to guide you through legal procedures and documents." },
-      { pattern: /^(help|what can you do)/i, response: "I can analyze legal queries, explain BNS sections, and guide you on legal procedures for various cases." },
-      { pattern: /thank/i, response: "You're welcome! Feel free to ask if you have more questions." }
-    ];
-
-    const matchedRule = intentRules.find(r => r.pattern.test(cleanMsg));
-    if (matchedRule && !activeCaseContext) { // Only use local intent if NO active case
-      aiResponse = matchedRule.response;
-    } else {
       // 3. Final Response Generation
       if (!process.env.GEMINI_API_KEY) {
         aiResponse = "Environment error: Missing Gemini API Key.";
       } else {
         try {
-          const callWithRetry = async (fn, maxRetries = 1, baseDelay = 500) => {
-            for (let attempt = 0; attempt <= maxRetries; attempt++) {
-              try { return await fn(); } 
-              catch (err) {
-                if (err.message.includes('429') && attempt < maxRetries) {
-                  await new Promise(r => setTimeout(r, baseDelay * Math.pow(2, attempt)));
-                  continue;
-                }
-                throw err;
-              }
-            }
-          };
-
-          const context = relevantLaws.length > 0 
-            ? relevantLaws.map(l => `Sec ${l.section}: ${l.title} - ${l.description}`).join("\n\n")
-            : "Focus on Indian Statutes.";
-
           const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          
+          // Model Fallback List - prioritization for speed/cost/availability
+          const modelCandidates = [
+             "gemini-flash-latest", 
+             "gemini-1.5-flash",
+             "gemini-2.0-flash-lite-preview-02-05"
+          ];
 
-          const prompt = `
-            You are a Legal AI Assistant for the Indian Judicial System. 
-            STRICT REQUIREMENT: As of 2026, the Indian Penal Code (IPC) has been replaced by the Bharatiya Nyaya Sanhita (BNS). You must never quote IPC sections unless specifically asked for historical context.
+          let lastError = null;
+          let generatedDetails = null;
 
-            Update your mapping for 'Offenses Against the Human Body' as follows:
-            - Replace Section 299/300 IPC (Culpable Homicide/Murder) with Section 100/101 BNS.
-            - Replace Section 302 IPC (Punishment for Murder) with Section 103 BNS.
-            - Replace Section 304 IPC (Punishment for Culpable Homicide) with Section 105 BNS.
-            - Replace Section 96-106 IPC (Private Defense) with Sections 34-44 BNS.
+          // Attempt generation with fallbacks
+          for (const modelName of modelCandidates) {
+             if (generatedDetails) break; // Success
+             
+             try {
+                console.log(`Attempting generation with model: ${modelName}`);
+                const model = genAI.getGenerativeModel({ model: modelName });
+                
+                const callWithRetry = async (fn, maxRetries = 3, baseDelay = 2000) => {
+                  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                    try { return await fn(); } 
+                    catch (err) {
+                      // Retry on Quota (429) or Service Unavailable (503)
+                      if ((err.message.includes('429') || err.message.includes('Quota') || err.message.includes('503')) && attempt < maxRetries) {
+                        const delay = baseDelay * Math.pow(2, attempt);
+                        console.log(`[${modelName}] Error ${err.message.split(' ')[0]}. Retrying in ${delay}ms...`);
+                        await new Promise(r => setTimeout(r, delay));
+                        continue;
+                      }
+                      throw err;
+                    }
+                  }
+                };
 
-            When a user discloses a serious crime, prioritize: 
-            1. Right to Silence (Art 20(3)) - Inform user they are not bound to incriminate themselves.
-            2. Need for a Lawyer - Emphasize professional legal representation.
-            3. BNS Legal Classification. 
-            
-            IMPORTANT PERSONA INSTRUCTIONS (EXPLAIN LIKE I'M 5):
-            1. SIMPLE LANGUAGE: You are a "Helpful Legal Guide", not a robot lawyer. Use plain English. Avoid legalese.
-            2. TONE: Be calm, reassuring, and clear. Do not be overly dramatic.
-            3. EXPLAIN CONCEPTS: If you use a legal term (e.g., "Culpable Homicide"), immediately explain it in simple words (e.g., "which means causing death but without the full intent of murder").
+                const context = relevantLaws.length > 0 
+                  ? relevantLaws.map(l => `Sec ${l.section}: ${l.title} - ${l.description}`).join("\n\n")
+                  : "General Indian Legal Context.";
 
-            MANDATORY STRUCTURE (Keep Accuracy, Improve Clarity):
-            1. MEMORY RECALL: Check history. If they asked "What is the punishment?", answer for the crime they already confessed to.
-            2. LOGIC LOCK: Treat follow-ups as a continuous conversation.
-            3. VISUAL FLOW: Always show the path: [Incident] -> [Police Case (FIR)] -> [Investigation] -> [Court Trial] -> [Final Decision].
-            4. EFFICIENCY: Use Bullet points. precise and easy to read.
+                const prompt = `
+                  IDENTITY & PERSONA:
+                  You are "AI Advisor", a sophisticated "Legal Technologist" specializing in Indian Law (BNS, BNSS, Bharatiya Sakshya Adhiniyam).
+                  - Role: You are an expert in legal documentation, regulatory compliance, and procedural law.
+                  - Tone: Empathetic but Objective. Professional, precise, and clear.
+                  - Jurisdiction: STRICTLY INDIAN LAW. Do not provide information on US, UK, or other foreign laws.
 
-            OUTPUT FORMAT:
-            - Header: Simple summary of the situation.
-            - The Law: Section 103 BNS (Murder) - Explain simply what it covers.
-            - The Process: The Visual Flowchart.
-            - Next Steps: 3 simple things to do (e.g., "Call a lawyer", "Don't speak until they arrive").
+                  MANDATORY SAFETY GUARDRAILS (NON-NEGOTIABLE):
+                  1. DISCLAIMER: If this is the START of a conversation (History is empty) or the user asks about your identity/qualifications, you MUST start your response with:
+                     "I am AI Advisor, an AI legal tool, not a licensed attorney. This information is for educational purposes and does not constitute legal advice."
+                  2. ANTI-HALLUCINATION: If a specific statute, section, or case law is not 100% verifiable in your training data or the provided context, state:
+                     "I do not have the specific citation for that, but the general legal principle is..."
+                     NEVER invent or guess at law names or section numbers.
+                  3. OUT-OF-SCOPE FILTER: If the user asks for coding help, recipes, creative writing, or general trivia unrelated to law, polite decline:
+                     "I am a Legal Technologist designed to assist with Indian Law. I cannot assist with non-legal queries."
 
-            ACTIVE CASE CONTEXT:
-            ${activeCaseContext ? `[SUBJECT: ${activeCaseContext.subject}] [SEVERITY: ${activeCaseContext.severity}] - USER IS ASKING FOLLOW-UP.` : "Checking HISTORY for context..."}
+                  RESPONSE STRUCTURE:
+                  1. [Legal Analysis]: Identify the core legal issue under Indian Law.
+                  2. [Relevant Statutes]: CITE specific sections of BNS/BNSS if confident.
+                  3. [Procedural Steps]: Explain the "Legal Journey" (e.g., FIR -> Investigation -> Court).
+                  4. [Documentation]: List specific documents or evidence needed.
 
-            CONTEXT (Laws):
-            ${context}
+                  CONTEXT (Laws found in database):
+                  ${context}
 
-            HISTORY (Previous Conversation):
-            ${historyContext || "ERROR: No History Found."}
+                  HISTORY (Previous Conversation):
+                  ${historyContext || "No previous history."}
 
-            QUERY: "${message}"
-          `;
+                  ACTIVE CASE CONTEXT:
+                  ${activeCaseContext ? `[SUBJECT: ${activeCaseContext.subject}] [STATUS: ${activeCaseContext.status}]` : "No active case context."}
 
-          console.log('Generating ultra-fast structured response...');
-          const result = await callWithRetry(() => model.generateContent(prompt));
-          aiResponse = result.response.text();
+                  USER QUERY: "${message}"
+
+                  *** RETURN FORMAT ***
+                  Return a SINGLE valid JSON object.
+                  {
+                    "answer": "Your full, formatted response (Markdown supported). Ensure the DISCLAIMER is included if required.",
+                    "metadata": {
+                      "title": "Short conversation title (max 5 words)",
+                      "summary": "One sentence summary",
+                      "category": "Criminal", // STRICTLY ONE OF: 'Civil', 'Criminal', 'Property', 'Cyber', 'Consumer', 'General'
+                      "activeCase": {
+                         "subject": "e.g. BNS 303 Theft",
+                         "description": "Short incident summary",
+                         "status": "Open",
+                         "severity": "High/Medium/Low"
+                      } (OR null)
+                    }
+                  }
+                `;
+
+                console.log('Generating structured response (Answer + Metadata)...');
+                const result = await callWithRetry(() => model.generateContent(prompt));
+                generatedDetails = result; // Mark success
+             } catch (modelErr) {
+                console.warn(`[${modelName}] Failed: ${modelErr.message}`);
+                lastError = modelErr;
+                // Loop continues to next model
+             }
+          }
+
+          if (!generatedDetails) {
+             throw lastError || new Error("All models failed.");
+          }
+
+          const textResponse = generatedDetails.response.text();
+          
+          // Parse JSON
+          try {
+             // Remove markdown code blocks if present
+             const cleanJson = textResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+             const parsed = JSON.parse(cleanJson);
+             aiResponse = parsed.answer;
+             
+             // Update chat metadata IMMEDIATELY if available
+             if (chat && parsed.metadata) {
+                // Update title if it's new OR default
+                if (chat.messages.length <= 4 || chat.title.startsWith('New')) {
+                   chat.title = parsed.metadata.title;
+                   chat.summary = parsed.metadata.summary;
+                   chat.category = parsed.metadata.category;
+                }
+                if (parsed.metadata.activeCase) {
+                   chat.activeCase = parsed.metadata.activeCase;
+                }
+                await chat.save();
+             }
+          } catch (parseErr) {
+             console.error('JSON Parse Error:', parseErr);
+             aiResponse = textResponse; // Fallback to raw text if parsing fails
+          }
         } catch (aiErr) {
           console.error('AI Processing Failure:', aiErr.message);
           if (aiErr.message.includes('429')) {
-            aiResponse = "The AI service is currently at maximum capacity (Quota Exceeded). Please wait a minute before trying again.";
+            aiResponse = "The AI service is currently at maximum capacity (Quota Exceeded). We are trying to scale, but please wait a minute before trying again.";
           } else {
-            aiResponse = "I encountered an error processing your request. Please try again in a few seconds.";
+            aiResponse = `System Error: ${aiErr.message}. Please report this code.`;
           }
         }
       }
+
+
+    // 5. Save complete history (User message + AI Response)
+    if (chat && chat.user.toString() === req.user.id) {
+       chat.messages.push({ role: 'user', text: message });
+       chat.messages.push({ role: 'ai', text: aiResponse });
+       await chat.save();
     }
 
-    // 5. Fire-and-Forget Persistence: Respond immediately, save in background
     res.status(200).json({
       success: true,
       data: aiResponse,
       chatId: currentChatId,
       sources: relevantLaws.map(l => l.section)
-    });
-
-    // background Task: Save and generate metadata without blocking the response
-    setImmediate(async () => {
-      try {
-        if (currentChatId) {
-          // If we created the chat in memory, we need to save messages to it. 
-          // However, since setImmediate is async, it is safer to fetch again to avoid race conditions 
-          // or use the instance if it's still valid. 
-          const chatToUpdate = await Chat.findById(currentChatId);
-          if (chatToUpdate && chatToUpdate.user.toString() === req.user.id) {
-            chatToUpdate.messages.push({ role: 'user', text: message });
-            chatToUpdate.messages.push({ role: 'ai', text: aiResponse });
-            await chatToUpdate.save();
-            
-             // Professional Metadata & Active Case Analysis (Background)
-             // We do this for EVERY pertinent message if it might be a new case
-             try {
-                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-                
-                const analysisPrompt = `
-                  Analyze the following user query and conversation to determine if a NEW legal case is being disclosed.
-                  Query: "${message}"
-                  Context: ${aiResponse.substring(0, 500)}
-                  
-                  Return ONLY JSON.
-                  If a specific legal incident (crime, dispute) is disclosed, fill "activeCase".
-                  If it's just general talk, leave "activeCase" null.
-                  
-                  Structure:
-                  {
-                    "title": "Short chat title",
-                    "summary": "One line summary",
-                    "category": "Civil/Criminal/etc",
-                    "activeCase": {
-                      "subject": "e.g. Murder, Theft",
-                      "description": "Short details",
-                      "severity": "High/Medium/Low"
-                    } (OR null)
-                  }
-                `;
-                
-                const metaResult = await model.generateContent(analysisPrompt);
-                const match = metaResult.response.text().match(/\{[\s\S]*\}/);
-                const jsonStr = match ? match[0] : "{}";
-                const metadata = JSON.parse(jsonStr);
-                
-                if (chatToUpdate.messages.length <= 2) {
-                   chatToUpdate.title = metadata.title || chatToUpdate.title;
-                   chatToUpdate.summary = metadata.summary || chatToUpdate.summary;
-                   chatToUpdate.category = metadata.category || chatToUpdate.category;
-                }
-                
-                // Update Active Case if detected
-                if (metadata.activeCase) {
-                   chatToUpdate.activeCase = {
-                      ...metadata.activeCase,
-                      status: 'Open'
-                   };
-                }
-                
-                await chatToUpdate.save();
-             } catch (e) { console.error('BG Analysis Err:', e.message); }
-          }
-        }
-      } catch (err) { console.error('BG Persistence Err:', err.message); }
     });
 
   } catch (err) {
